@@ -559,6 +559,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @property (nonatomic, strong) MirrorContentView *mirrorView;
 - (instancetype)initWithSize:(CGFloat)size;
 - (void)moveToBottomRightWithSize:(CGFloat)size;
+- (void)resizeToSizePreservingCenter:(CGFloat)size;
 @end
 
 @interface TextOverlayPanel : NSPanel
@@ -611,6 +612,21 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     CGFloat margin = 24.0;
     NSPoint origin = NSMakePoint(NSMaxX(visibleFrame) - size - margin, NSMinY(visibleFrame) + margin);
     [self setFrame:NSMakeRect(origin.x, origin.y, size, size) display:YES animate:YES];
+}
+
+- (void)resizeToSizePreservingCenter:(CGFloat)size {
+    NSRect currentFrame = self.frame;
+    NSPoint center = NSMakePoint(NSMidX(currentFrame), NSMidY(currentFrame));
+    NSRect nextFrame = NSMakeRect(center.x - (size / 2.0), center.y - (size / 2.0), size, size);
+
+    NSScreen *screen = self.screen ?: NSScreen.mainScreen ?: NSScreen.screens.firstObject;
+    if (screen != nil) {
+        NSRect visibleFrame = screen.visibleFrame;
+        nextFrame.origin.x = MIN(MAX(nextFrame.origin.x, NSMinX(visibleFrame)), NSMaxX(visibleFrame) - size);
+        nextFrame.origin.y = MIN(MAX(nextFrame.origin.y, NSMinY(visibleFrame)), NSMaxY(visibleFrame) - size);
+    }
+
+    [self setFrame:nextFrame display:YES animate:NO];
 }
 
 @end
@@ -1028,6 +1044,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     __weak typeof(self) weakSelf = self;
     self.settingsWindowController.onConfigChange = ^(MirrorConfig *updatedConfig) {
         weakSelf.config = updatedConfig;
+        [weakSelf.mirrorPanel resizeToSizePreservingCenter:updatedConfig.diameter];
         [weakSelf.mirrorPanel setContentSize:NSMakeSize(updatedConfig.diameter, updatedConfig.diameter)];
         weakSelf.mirrorPanel.contentView.frame = NSMakeRect(0, 0, updatedConfig.diameter, updatedConfig.diameter);
         weakSelf.mirrorPanel.mirrorView.frame = NSMakeRect(0, 0, updatedConfig.diameter, updatedConfig.diameter);
@@ -1038,7 +1055,6 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         if (updatedConfig.overlayOriginX != CGFLOAT_MAX && updatedConfig.overlayOriginY != CGFLOAT_MAX) {
             [weakSelf.textOverlayPanel setFrameOrigin:NSMakePoint(updatedConfig.overlayOriginX, updatedConfig.overlayOriginY)];
         }
-        [weakSelf.mirrorPanel moveToBottomRightWithSize:updatedConfig.diameter];
         [weakSelf.mirrorPanel orderFrontRegardless];
         [weakSelf.textOverlayPanel orderFrontRegardless];
     };
