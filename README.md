@@ -1,4 +1,4 @@
-# Camera Mirror
+# A tiny MacOS app for always-on-top camera mirror window
 
 I built this because I didn’t want to pay $18/month for Loom.
 
