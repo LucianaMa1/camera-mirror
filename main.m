@@ -910,6 +910,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.signaturePreviewLabel.alignment = NSTextAlignmentCenter;
     self.signaturePreviewLabel.maximumNumberOfLines = 0;
     self.signaturePreviewLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.signaturePreviewLabel setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [self.signaturePreviewLabel setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationVertical];
 
     [self configureColorWell:self.signatureColorWell];
 
@@ -1074,8 +1076,11 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
     [NSLayoutConstraint activateConstraints:@[
         [previewSurface.heightAnchor constraintEqualToConstant:88.0],
+        [previewSurface.widthAnchor constraintGreaterThanOrEqualToConstant:0.0],
         [self.signaturePreviewLabel.leadingAnchor constraintEqualToAnchor:previewSurface.leadingAnchor constant:16.0],
         [self.signaturePreviewLabel.trailingAnchor constraintEqualToAnchor:previewSurface.trailingAnchor constant:-16.0],
+        [self.signaturePreviewLabel.topAnchor constraintGreaterThanOrEqualToAnchor:previewSurface.topAnchor constant:12.0],
+        [self.signaturePreviewLabel.bottomAnchor constraintLessThanOrEqualToAnchor:previewSurface.bottomAnchor constant:-12.0],
         [self.signaturePreviewLabel.centerYAnchor constraintEqualToAnchor:previewSurface.centerYAnchor]
     ]];
 
