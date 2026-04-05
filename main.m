@@ -146,6 +146,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 - (void)applyConfig:(MirrorConfig *)config;
 - (NSSize)preferredSize;
 @property (nonatomic, copy) void (^onDragMove)(NSPoint origin);
+@property (nonatomic, copy) void (^onDragEnd)(NSPoint origin);
 @property (nonatomic, copy) void (^onOpenSettings)(void);
 @end
 
@@ -620,6 +621,9 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 - (void)mouseUp:(NSEvent *)event {
     [NSCursor pop];
     [[NSCursor openHandCursor] push];
+    if (self.window != nil && self.onDragEnd != nil) {
+        self.onDragEnd(self.window.frame.origin);
+    }
 }
 
 @end
@@ -1347,6 +1351,11 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     };
 
     self.textOverlayPanel.overlayView.onDragMove = ^(NSPoint origin) {
+        weakSelf.config.overlayOriginX = origin.x;
+        weakSelf.config.overlayOriginY = origin.y;
+    };
+
+    self.textOverlayPanel.overlayView.onDragEnd = ^(NSPoint origin) {
         weakSelf.config.overlayOriginX = origin.x;
         weakSelf.config.overlayOriginY = origin.y;
         [SettingsStore saveConfig:weakSelf.config];
