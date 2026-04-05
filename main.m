@@ -504,28 +504,31 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
 - (NSSize)preferredSize {
     CGFloat maxWidth = 420.0;
+    CGFloat horizontalPadding = 18.0;
+    CGFloat verticalPadding = 8.0;
     NSDictionary *signatureAttrs = @{ NSFontAttributeName: self.signatureLabel.font ?: [NSFont systemFontOfSize:22.0] };
     NSRect signatureRect = [self.signatureLabel.stringValue boundingRectWithSize:NSMakeSize(maxWidth, CGFLOAT_MAX)
                                                                          options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading
                                                                       attributes:signatureAttrs];
 
-    CGFloat width = signatureRect.size.width + 28.0;
-    CGFloat height = signatureRect.size.height;
+    CGFloat width = ceil(signatureRect.size.width) + (horizontalPadding * 2.0) + 6.0;
+    CGFloat height = ceil(signatureRect.size.height) + (verticalPadding * 2.0);
     width = MAX(width, 120.0);
     height = MAX(height, 52.0);
-    return NSMakeSize(ceil(width), ceil(height));
+    return NSMakeSize(width, height);
 }
 
 - (void)layout {
     [super layout];
-    CGFloat padding = 14.0;
-    CGFloat width = self.bounds.size.width - (padding * 2.0);
+    CGFloat horizontalPadding = 18.0;
+    CGFloat verticalPadding = 8.0;
+    CGFloat width = self.bounds.size.width - (horizontalPadding * 2.0);
     NSDictionary *signatureAttrs = @{ NSFontAttributeName: self.signatureLabel.font ?: [NSFont systemFontOfSize:22.0] };
     NSRect signatureRect = [self.signatureLabel.stringValue boundingRectWithSize:NSMakeSize(width, CGFLOAT_MAX)
                                                                          options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading
                                                                       attributes:signatureAttrs];
     CGFloat signatureHeight = MAX(ceil(signatureRect.size.height), self.signatureLabel.font.pointSize * 1.2);
-    self.signatureLabel.frame = NSMakeRect(padding, 0.0, width, signatureHeight);
+    self.signatureLabel.frame = NSMakeRect(horizontalPadding, verticalPadding, width, signatureHeight);
 }
 
 - (void)mouseDown:(NSEvent *)event {
