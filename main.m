@@ -1260,6 +1260,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         if (updatedConfig.overlayOriginX != CGFLOAT_MAX && updatedConfig.overlayOriginY != CGFLOAT_MAX) {
             [weakSelf.textOverlayPanel setFrameOrigin:NSMakePoint(updatedConfig.overlayOriginX, updatedConfig.overlayOriginY)];
         }
+        [weakSelf.mirrorPanel orderFrontRegardless];
+        [weakSelf.textOverlayPanel orderFrontRegardless];
     };
 
     self.settingsWindowController.onResetPosition = ^{
