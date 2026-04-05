@@ -17,16 +17,6 @@ It works great with:
 
 <img width="1257" height="1375" alt="camera mirror" src="https://github.com/user-attachments/assets/610ce759-e878-4984-bfce-f035acc54cf3" />
 
-## Why I made this
-
-I kept running into the same pain point:
-
-- I wanted a simple live face mirror while recording
-- I did not want to pay a monthly subscription for another facecam app
-- I wanted something lightweight and easy enough that even non-technical users could just double-click and use it
-
-So I built one.
-
 ## What it does
 
 - Opens your front camera and mirrors it live
