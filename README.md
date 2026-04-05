@@ -1,12 +1,12 @@
 # Camera Mirror
 
-A tiny macOS helper for screen recording.
+A tiny macOS helper for having a facecam on your screen, helpful for facecam screen recording, or just a face check.
 
-If you record demos, tutorials, walkthroughs, or presentations, you probably know this feeling:
+I built this because I didn’t want to pay $18/month for Loom.
 
-you want to record your screen, but you also want to keep an eye on your own face in real time.
+If you record tutorials, demos, or walkthroughs and want your face visible while recording your screen — this gives you a simple floating camera mirror.
 
-That is exactly what this app is for.
+No subscription. No login. Just open and record.
 
 `Camera Mirror` gives you a small always-on-top camera mirror window, so while you record your screen with any screen recorder, you can still see yourself live.
 
