@@ -301,7 +301,10 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         cornerRadius = minSide * 0.30;
     }
 
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
     self.layer.cornerRadius = cornerRadius;
+    [CATransaction commit];
 }
 
 - (void)configureCameraAccess {
@@ -647,7 +650,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         self.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary | NSWindowCollectionBehaviorStationary;
         self.backgroundColor = NSColor.clearColor;
         self.opaque = NO;
-        self.hasShadow = YES;
+        self.hasShadow = NO;
         self.hidesOnDeactivate = NO;
         self.ignoresMouseEvents = NO;
 
