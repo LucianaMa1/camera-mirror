@@ -84,14 +84,19 @@ and allow Camera Mirror to access the camera.
 
 If you downloaded the whole project as source code and want to build the app yourself:
 
+Open the Terminal on your Mac and paste the following code in
+
 ```bash
+gh repo clone LucianaMa1/camera-mirror
+cd camera-mirror
 chmod +x ./build_camera_mirror_app.sh
 ./build_camera_mirror_app.sh
+open "Camera Mirror.app"
 ```
 
-This will generate:
+This will generate: `Camera Mirror.app` and open the app for you.
 
-`Camera Mirror.app`
+After you have built it for the first time, you can access this app from the applicartion menu on your computer next time.
 
 ## Typical Workflow
 
