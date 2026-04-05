@@ -17,7 +17,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     MirrorShapeSoftSquare = 2
 };
 
-@interface MirrorConfig : NSObject
+@interface MirrorConfig : NSObject <NSCopying>
 @property (nonatomic, copy) NSString *signature;
 @property (nonatomic, strong) NSColor *signatureColor;
 @property (nonatomic, assign) CGFloat signatureFontSize;
@@ -43,6 +43,20 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     config.overlayOriginX = CGFLOAT_MAX;
     config.overlayOriginY = CGFLOAT_MAX;
     return config;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    MirrorConfig *copy = [[[self class] allocWithZone:zone] init];
+    copy.signature = [self.signature copy];
+    copy.signatureColor = self.signatureColor;
+    copy.signatureFontSize = self.signatureFontSize;
+    copy.diameter = self.diameter;
+    copy.shape = self.shape;
+    copy.mirrorOriginX = self.mirrorOriginX;
+    copy.mirrorOriginY = self.mirrorOriginY;
+    copy.overlayOriginX = self.overlayOriginX;
+    copy.overlayOriginY = self.overlayOriginY;
+    return copy;
 }
 @end
 
@@ -722,14 +736,17 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @property (nonatomic, copy) void (^onConfigChange)(MirrorConfig *config);
 @property (nonatomic, copy) void (^onResetPosition)(void);
 - (instancetype)initWithConfig:(MirrorConfig *)config;
+- (void)syncFromConfig:(MirrorConfig *)config;
 @end
 
 @interface SettingsWindowController ()
+@property (nonatomic, strong) MirrorConfig *sourceConfig;
 @property (nonatomic, strong) MirrorConfig *config;
 @property (nonatomic, strong) NSTextField *signatureField;
 @property (nonatomic, strong) NSColorWell *signatureColorWell;
 @property (nonatomic, strong) NSSlider *signatureFontSlider;
 @property (nonatomic, strong) NSTextField *signatureFontValueLabel;
+@property (nonatomic, strong) NSTextField *signaturePreviewLabel;
 @property (nonatomic, strong) NSSlider *sizeSlider;
 @property (nonatomic, strong) NSTextField *sizeValueLabel;
 @property (nonatomic, strong) NSPopUpButton *shapePopup;
@@ -775,12 +792,21 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
                                                              defer:NO];
     self = [super initWithWindow:window];
     if (self) {
-        _config = config;
+        _sourceConfig = config;
+        _config = [config copy];
         [self setupWindow];
         [self buildUI];
         [self applyCurrentConfigToControls];
     }
     return self;
+}
+
+- (void)syncFromConfig:(MirrorConfig *)config {
+    self.sourceConfig = config;
+    self.config = [config copy];
+    if (self.isWindowLoaded) {
+        [self applyCurrentConfigToControls];
+    }
 }
 
 - (void)setupWindow {
@@ -789,6 +815,10 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.window.releasedWhenClosed = NO;
     self.window.titlebarAppearsTransparent = YES;
     self.window.titleVisibility = NSWindowTitleHidden;
+}
+
+- (NSFont *)signaturePreviewFontWithSize:(CGFloat)size {
+    return [NSFont fontWithName:@"Snell Roundhand Bold" size:size] ?: ([NSFont fontWithName:@"Didot" size:size] ?: [NSFont systemFontOfSize:size weight:NSFontWeightMedium]);
 }
 
 - (void)buildUI {
@@ -827,6 +857,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.signatureFontSlider.minValue = 16.0;
     self.signatureFontSlider.maxValue = 64.0;
     self.signatureFontValueLabel = [NSTextField labelWithString:@""];
+    self.signaturePreviewLabel = [NSTextField wrappingLabelWithString:@""];
     self.sizeSlider = [[NSSlider alloc] initWithFrame:NSZeroRect];
     self.sizeSlider.minValue = 220.0;
     self.sizeSlider.maxValue = 420.0;
@@ -837,19 +868,22 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.sizeValueLabel.textColor = NSColor.secondaryLabelColor;
     self.signatureFontValueLabel.font = [NSFont monospacedDigitSystemFontOfSize:12.0 weight:NSFontWeightMedium];
     self.signatureFontValueLabel.textColor = NSColor.secondaryLabelColor;
+    self.signaturePreviewLabel.alignment = NSTextAlignmentCenter;
+    self.signaturePreviewLabel.maximumNumberOfLines = 0;
+    self.signaturePreviewLabel.translatesAutoresizingMaskIntoConstraints = NO;
 
     [self configureColorWell:self.signatureColorWell];
 
     [self.signatureField setTarget:self];
-    [self.signatureField setAction:@selector(handleControlChange:)];
+    [self.signatureField setAction:@selector(handleDraftChange:)];
     [self.signatureColorWell setTarget:self];
-    [self.signatureColorWell setAction:@selector(handleControlChange:)];
+    [self.signatureColorWell setAction:@selector(handleDraftChange:)];
     [self.signatureFontSlider setTarget:self];
-    [self.signatureFontSlider setAction:@selector(handleControlChange:)];
+    [self.signatureFontSlider setAction:@selector(handleDraftChange:)];
     [self.sizeSlider setTarget:self];
-    [self.sizeSlider setAction:@selector(handleControlChange:)];
+    [self.sizeSlider setAction:@selector(handleDraftChange:)];
     [self.shapePopup setTarget:self];
-    [self.shapePopup setAction:@selector(handleControlChange:)];
+    [self.shapePopup setAction:@selector(handleDraftChange:)];
 
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textDidChange:) name:NSControlTextDidChangeNotification object:self.signatureField];
 
@@ -860,9 +894,9 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     NSButton *closeButton = [NSButton buttonWithTitle:@"Hide Panel" target:self action:@selector(hideWindow:)];
     closeButton.bezelStyle = NSBezelStyleRounded;
 
-    NSButton *doneButton = [NSButton buttonWithTitle:@"Done" target:self action:@selector(hideWindow:)];
-    doneButton.bezelStyle = NSBezelStyleRounded;
-    doneButton.contentTintColor = [NSColor colorWithCalibratedRed:0.25 green:0.53 blue:0.98 alpha:1.0];
+    NSButton *applyButton = [NSButton buttonWithTitle:@"Apply" target:self action:@selector(applyChanges:)];
+    applyButton.bezelStyle = NSBezelStyleRounded;
+    applyButton.contentTintColor = [NSColor colorWithCalibratedRed:0.25 green:0.53 blue:0.98 alpha:1.0];
 
     NSStackView *stack = [[NSStackView alloc] initWithFrame:NSZeroRect];
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
@@ -879,11 +913,12 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [stack addArrangedSubview:[self sectionCardWithTitle:@"Styling" rows:@[
         [self textStyleRowWithTitle:@"Signature style" colorWell:self.signatureColorWell slider:self.signatureFontSlider valueLabel:self.signatureFontValueLabel]
     ]]];
+    [stack addArrangedSubview:[self previewCard]];
     [stack addArrangedSubview:[self sectionCardWithTitle:@"Mirror Shape" rows:@[
         [self labeledRowWithTitle:@"Frame shape" control:self.shapePopup],
         [self sizeRow]
     ]]];
-    [stack addArrangedSubview:[self buttonRowWithViews:@[resetButton, closeButton, doneButton]]];
+    [stack addArrangedSubview:[self buttonRowWithViews:@[resetButton, closeButton, applyButton]]];
 
     [self.rootVisualEffectView addSubview:stack];
 
@@ -977,6 +1012,51 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     return card;
 }
 
+- (NSView *)previewCard {
+    NSVisualEffectView *card = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
+    card.material = NSVisualEffectMaterialHUDWindow;
+    card.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+    card.state = NSVisualEffectStateActive;
+    card.wantsLayer = YES;
+    card.layer.cornerRadius = 18.0;
+    card.layer.borderWidth = 1.0;
+    card.layer.borderColor = [NSColor colorWithWhite:1.0 alpha:0.08].CGColor;
+
+    NSTextField *titleLabel = [NSTextField labelWithString:@"Preview"];
+    titleLabel.font = [NSFont systemFontOfSize:12.0 weight:NSFontWeightBold];
+    titleLabel.textColor = [NSColor colorWithCalibratedRed:0.88 green:0.41 blue:0.47 alpha:1.0];
+
+    NSView *previewSurface = [[NSView alloc] initWithFrame:NSZeroRect];
+    previewSurface.translatesAutoresizingMaskIntoConstraints = NO;
+    previewSurface.wantsLayer = YES;
+    previewSurface.layer.cornerRadius = 14.0;
+    previewSurface.layer.backgroundColor = [NSColor colorWithWhite:0.08 alpha:0.6].CGColor;
+
+    [previewSurface addSubview:self.signaturePreviewLabel];
+
+    NSStackView *stack = [[NSStackView alloc] initWithFrame:NSZeroRect];
+    stack.orientation = NSUserInterfaceLayoutOrientationVertical;
+    stack.spacing = 12.0;
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    stack.edgeInsets = NSEdgeInsetsMake(16.0, 16.0, 16.0, 16.0);
+    [stack addArrangedSubview:titleLabel];
+    [stack addArrangedSubview:previewSurface];
+
+    [card addSubview:stack];
+    [NSLayoutConstraint activateConstraints:@[
+        [previewSurface.heightAnchor constraintEqualToConstant:88.0],
+        [self.signaturePreviewLabel.leadingAnchor constraintEqualToAnchor:previewSurface.leadingAnchor constant:16.0],
+        [self.signaturePreviewLabel.trailingAnchor constraintEqualToAnchor:previewSurface.trailingAnchor constant:-16.0],
+        [self.signaturePreviewLabel.centerYAnchor constraintEqualToAnchor:previewSurface.centerYAnchor],
+        [stack.leadingAnchor constraintEqualToAnchor:card.leadingAnchor],
+        [stack.trailingAnchor constraintEqualToAnchor:card.trailingAnchor],
+        [stack.topAnchor constraintEqualToAnchor:card.topAnchor],
+        [stack.bottomAnchor constraintEqualToAnchor:card.bottomAnchor]
+    ]];
+
+    return card;
+}
+
 - (NSView *)sizeRow {
     NSTextField *label = [NSTextField labelWithString:@"Circle size"];
     label.font = [NSFont systemFontOfSize:13.0 weight:NSFontWeightMedium];
@@ -1011,9 +1091,10 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [self.shapePopup selectItemAtIndex:self.config.shape];
     self.signatureFontValueLabel.stringValue = [NSString stringWithFormat:@"%d pt", (int)round(self.config.signatureFontSize)];
     self.sizeValueLabel.stringValue = [NSString stringWithFormat:@"%d px", (int)self.config.diameter];
+    [self updatePreview];
 }
 
-- (void)handleControlChange:(id)sender {
+- (void)handleDraftChange:(id)sender {
     self.config.signature = self.signatureField.stringValue ?: @"";
     self.config.signatureColor = self.signatureColorWell.color;
     self.config.signatureFontSize = round(self.signatureFontSlider.doubleValue);
@@ -1021,15 +1102,34 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.config.shape = (MirrorShape)self.shapePopup.indexOfSelectedItem;
     self.signatureFontValueLabel.stringValue = [NSString stringWithFormat:@"%d pt", (int)self.config.signatureFontSize];
     self.sizeValueLabel.stringValue = [NSString stringWithFormat:@"%d px", (int)self.config.diameter];
+    [self updatePreview];
+}
 
-    [SettingsStore saveConfig:self.config];
+- (void)updatePreview {
+    self.signaturePreviewLabel.stringValue = self.config.signature.length > 0 ? self.config.signature : @"Preview your signature";
+    self.signaturePreviewLabel.textColor = self.config.signatureColor;
+    self.signaturePreviewLabel.font = [self signaturePreviewFontWithSize:self.config.signatureFontSize];
+}
+
+- (void)applyChanges:(id)sender {
+    self.sourceConfig.signature = self.config.signature;
+    self.sourceConfig.signatureColor = self.config.signatureColor;
+    self.sourceConfig.signatureFontSize = self.config.signatureFontSize;
+    self.sourceConfig.diameter = self.config.diameter;
+    self.sourceConfig.shape = self.config.shape;
+    self.sourceConfig.mirrorOriginX = self.config.mirrorOriginX;
+    self.sourceConfig.mirrorOriginY = self.config.mirrorOriginY;
+    self.sourceConfig.overlayOriginX = self.config.overlayOriginX;
+    self.sourceConfig.overlayOriginY = self.config.overlayOriginY;
+
+    [SettingsStore saveConfig:self.sourceConfig];
     if (self.onConfigChange != nil) {
-        self.onConfigChange(self.config);
+        self.onConfigChange(self.sourceConfig);
     }
 }
 
 - (void)textDidChange:(NSNotification *)notification {
-    [self handleControlChange:notification.object];
+    [self handleDraftChange:notification.object];
 }
 
 - (void)resetPosition:(id)sender {
@@ -1196,6 +1296,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 }
 
 - (void)showSettings {
+    [self.settingsWindowController syncFromConfig:self.config];
     [self.settingsWindowController showWindow:nil];
     [self.settingsWindowController.window makeKeyAndOrderFront:nil];
     [NSApp activateIgnoringOtherApps:YES];
