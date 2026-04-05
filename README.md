@@ -37,32 +37,28 @@ So I built one.
 - Opens settings by hover, click, or double-clicking the watermark text
 - Can be built into a double-clickable macOS `.app`
 
-## If You Just Want To Use It
+## Easiest Way To Use It
 
-This section is for normal users who downloaded the project from GitHub and just want to open the app.
+If you just want to use the app, the best path is the **GitHub Releases** page.
 
-### 1. Download the project
+Download the ready-made package there:
 
-On GitHub:
+- `Camera-Mirror-macOS.dmg`
+- or `Camera-Mirror-macOS.zip`
 
-1. Click `Code`
-2. Click `Download ZIP`
-3. Unzip the file on your Mac
+Then open the app by double-clicking `Camera Mirror.app`.
 
-### 2. Build the app
+## If You Downloaded The App From Releases
 
-Open Terminal, go into the project folder, then run:
+### 1. Download the app
 
-```bash
-chmod +x ./build_camera_mirror_app.sh
-./build_camera_mirror_app.sh
-```
+1. Open the `Releases` page
+2. Download `Camera-Mirror-macOS.dmg` or `Camera-Mirror-macOS.zip`
 
-This will generate:
+### 2. Open the app
 
-`Camera Mirror.app`
-
-### 3. Open the app
+- If you downloaded the `.dmg`, open it first, then drag or copy `Camera Mirror.app`
+- If you downloaded the `.zip`, unzip it first
 
 Double-click:
 
@@ -74,7 +70,7 @@ If macOS blocks it the first time:
 2. Click `Open`
 3. Click `Open` again in the security prompt
 
-### 4. Allow camera permission
+### 3. Allow camera permission
 
 The first time you open it, macOS may ask for camera permission.
 
@@ -83,6 +79,19 @@ If the permission prompt does not appear automatically, go to:
 `System Settings` -> `Privacy & Security` -> `Camera`
 
 and allow Camera Mirror to access the camera.
+
+## If You Downloaded The Source Code Instead
+
+If you downloaded the whole project as source code and want to build the app yourself:
+
+```bash
+chmod +x ./build_camera_mirror_app.sh
+./build_camera_mirror_app.sh
+```
+
+This will generate:
+
+`Camera Mirror.app`
 
 ## Typical Workflow
 
