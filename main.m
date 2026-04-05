@@ -919,7 +919,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     NSButton *closeButton = [NSButton buttonWithTitle:@"Hide Panel" target:self action:@selector(hideWindow:)];
     closeButton.bezelStyle = NSBezelStyleRounded;
 
-    NSButton *applyButton = [NSButton buttonWithTitle:@"Apply" target:self action:@selector(applyChanges:)];
+    NSButton *applyButton = [NSButton buttonWithTitle:@"Apply Signature" target:self action:@selector(applyChanges:)];
     applyButton.bezelStyle = NSBezelStyleRounded;
     applyButton.contentTintColor = [NSColor colorWithCalibratedRed:0.25 green:0.53 blue:0.98 alpha:1.0];
 
@@ -933,17 +933,16 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [stack addArrangedSubview:titleLabel];
     [stack addArrangedSubview:introLabel];
     [stack addArrangedSubview:[self sectionCardWithTitle:@"Signature" rows:@[
-        [self labeledRowWithTitle:@"Signature" control:self.signatureField]
+        [self labeledRowWithTitle:@"Signature" control:self.signatureField],
+        [self textStyleRowWithTitle:@"Signature style" colorWell:self.signatureColorWell slider:self.signatureFontSlider valueLabel:self.signatureFontValueLabel],
+        [self previewCard],
+        [self buttonRowWithViews:@[applyButton]]
     ]]];
-    [stack addArrangedSubview:[self sectionCardWithTitle:@"Styling" rows:@[
-        [self textStyleRowWithTitle:@"Signature style" colorWell:self.signatureColorWell slider:self.signatureFontSlider valueLabel:self.signatureFontValueLabel]
-    ]]];
-    [stack addArrangedSubview:[self previewCard]];
     [stack addArrangedSubview:[self sectionCardWithTitle:@"Mirror Shape" rows:@[
         [self labeledRowWithTitle:@"Frame shape" control:self.shapePopup],
         [self sizeRow]
     ]]];
-    [stack addArrangedSubview:[self buttonRowWithViews:@[resetButton, closeButton, applyButton]]];
+    [stack addArrangedSubview:[self buttonRowWithViews:@[resetButton, closeButton]]];
 
     [self.rootVisualEffectView addSubview:stack];
 
@@ -1038,15 +1037,6 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 }
 
 - (NSView *)previewCard {
-    NSVisualEffectView *card = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
-    card.material = NSVisualEffectMaterialHUDWindow;
-    card.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-    card.state = NSVisualEffectStateActive;
-    card.wantsLayer = YES;
-    card.layer.cornerRadius = 18.0;
-    card.layer.borderWidth = 1.0;
-    card.layer.borderColor = [NSColor colorWithWhite:1.0 alpha:0.08].CGColor;
-
     NSTextField *titleLabel = [NSTextField labelWithString:@"Signature Styling Preview"];
     titleLabel.font = [NSFont systemFontOfSize:12.0 weight:NSFontWeightBold];
     titleLabel.textColor = [NSColor colorWithCalibratedRed:0.88 green:0.41 blue:0.47 alpha:1.0];
@@ -1065,23 +1055,17 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     stack.spacing = 12.0;
     stack.translatesAutoresizingMaskIntoConstraints = NO;
-    stack.edgeInsets = NSEdgeInsetsMake(16.0, 16.0, 16.0, 16.0);
     [stack addArrangedSubview:titleLabel];
     [stack addArrangedSubview:previewSurface];
 
-    [card addSubview:stack];
     [NSLayoutConstraint activateConstraints:@[
         [previewSurface.heightAnchor constraintEqualToConstant:88.0],
         [self.signaturePreviewLabel.leadingAnchor constraintEqualToAnchor:previewSurface.leadingAnchor constant:16.0],
         [self.signaturePreviewLabel.trailingAnchor constraintEqualToAnchor:previewSurface.trailingAnchor constant:-16.0],
-        [self.signaturePreviewLabel.centerYAnchor constraintEqualToAnchor:previewSurface.centerYAnchor],
-        [stack.leadingAnchor constraintEqualToAnchor:card.leadingAnchor],
-        [stack.trailingAnchor constraintEqualToAnchor:card.trailingAnchor],
-        [stack.topAnchor constraintEqualToAnchor:card.topAnchor],
-        [stack.bottomAnchor constraintEqualToAnchor:card.bottomAnchor]
+        [self.signaturePreviewLabel.centerYAnchor constraintEqualToAnchor:previewSurface.centerYAnchor]
     ]];
 
-    return card;
+    return stack;
 }
 
 - (NSView *)sizeRow {
