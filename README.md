@@ -1,7 +1,5 @@
 # Camera Mirror
 
-A tiny macOS helper for having a facecam on your screen, helpful for facecam screen recording, or just a face check.
-
 I built this because I didn’t want to pay $18/month for Loom.
 
 If you record tutorials, demos, or walkthroughs and want your face visible while recording your screen — this gives you a simple floating camera mirror.
@@ -16,7 +14,7 @@ It works great with:
 - QuickTime Player
 - free screen recording tools
 - your usual video workflow
-- 
+
 <img width="1257" height="1375" alt="camera mirror" src="https://github.com/user-attachments/assets/610ce759-e878-4984-bfce-f035acc54cf3" />
 
 ## Why I made this
