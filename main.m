@@ -1169,8 +1169,6 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.sourceConfig.shape = self.config.shape;
     self.sourceConfig.mirrorOriginX = self.config.mirrorOriginX;
     self.sourceConfig.mirrorOriginY = self.config.mirrorOriginY;
-    self.sourceConfig.overlayOriginX = self.config.overlayOriginX;
-    self.sourceConfig.overlayOriginY = self.config.overlayOriginY;
 
     [SettingsStore saveConfig:self.sourceConfig];
     if (self.onConfigChange != nil) {
