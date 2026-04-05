@@ -35,35 +35,50 @@ So I built one.
 - Lets you show watermark text
 - Lets you drag the watermark separately from the mirror
 - Opens settings by hover, click, or double-clicking the watermark text
-- Can be packaged as a double-clickable macOS `.app`
+- Can be built into a double-clickable macOS `.app`
 
-## Quick Start
+## If You Just Want To Use It
 
-### Option 1: Run from script
+This section is for normal users who downloaded the project from GitHub and just want to open the app.
 
-```bash
-chmod +x ./run_camera_mirror.sh
-./run_camera_mirror.sh
-```
+### 1. Download the project
 
-### Option 2: Build a double-clickable `.app`
+On GitHub:
+
+1. Click `Code`
+2. Click `Download ZIP`
+3. Unzip the file on your Mac
+
+### 2. Build the app
+
+Open Terminal, go into the project folder, then run:
 
 ```bash
 chmod +x ./build_camera_mirror_app.sh
 ./build_camera_mirror_app.sh
 ```
 
-This generates:
+This will generate:
 
 `Camera Mirror.app`
 
-You can then double-click it like a normal macOS app.
+### 3. Open the app
 
-## First Launch
+Double-click:
+
+`Camera Mirror.app`
+
+If macOS blocks it the first time:
+
+1. Right-click `Camera Mirror.app`
+2. Click `Open`
+3. Click `Open` again in the security prompt
+
+### 4. Allow camera permission
 
 The first time you open it, macOS may ask for camera permission.
 
-If permission does not pop up automatically, go to:
+If the permission prompt does not appear automatically, go to:
 
 `System Settings` -> `Privacy & Security` -> `Camera`
 
@@ -87,6 +102,15 @@ You can open settings by:
 - hovering over the mirror and clicking the small dot
 - double-clicking the watermark text
 
+## If You Want To Run It From Source
+
+If you are comfortable with Terminal and want to launch it directly without building the `.app`, run:
+
+```bash
+chmod +x ./run_camera_mirror.sh
+./run_camera_mirror.sh
+```
+
 ## Project Files
 
 - `main.m` — native macOS app source
@@ -94,7 +118,6 @@ You can open settings by:
 - `build_camera_mirror_app.sh` — builds the `.app`
 - `generate_icon.m` — generates the app icon
 - `camera-mirror-icon-1024.png` — exported icon image
-- `social-posts.md` — ready-to-post bilingual social media copy
 
 ## Notes
 
