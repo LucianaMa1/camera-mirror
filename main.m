@@ -509,7 +509,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         self.titleLabel.bordered = NO;
         self.titleLabel.drawsBackground = NO;
         self.titleLabel.alignment = NSTextAlignmentLeft;
-        self.titleLabel.maximumNumberOfLines = 2;
+        self.titleLabel.maximumNumberOfLines = 0;
+        self.titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
         self.titleLabel.font = [self displayFontWithSize:28.0];
         [self addSubview:self.titleLabel];
 
@@ -518,7 +519,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         self.signatureLabel.bordered = NO;
         self.signatureLabel.drawsBackground = NO;
         self.signatureLabel.alignment = NSTextAlignmentLeft;
-        self.signatureLabel.maximumNumberOfLines = 1;
+        self.signatureLabel.maximumNumberOfLines = 0;
+        self.signatureLabel.lineBreakMode = NSLineBreakByWordWrapping;
         self.signatureLabel.font = [self signatureFontWithSize:24.0];
         [self addSubview:self.signatureLabel];
 
@@ -569,8 +571,16 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [super layout];
     CGFloat padding = 14.0;
     CGFloat width = self.bounds.size.width - (padding * 2.0);
-    CGFloat signatureHeight = MAX(22.0, self.signatureLabel.font.pointSize * 1.5);
-    CGFloat titleHeight = self.bounds.size.height - signatureHeight - 12.0;
+    NSDictionary *titleAttrs = @{ NSFontAttributeName: self.titleLabel.font ?: [NSFont systemFontOfSize:28.0] };
+    NSDictionary *signatureAttrs = @{ NSFontAttributeName: self.signatureLabel.font ?: [NSFont systemFontOfSize:22.0] };
+    NSRect titleRect = [self.titleLabel.stringValue boundingRectWithSize:NSMakeSize(width, CGFLOAT_MAX)
+                                                                 options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading
+                                                              attributes:titleAttrs];
+    NSRect signatureRect = [self.signatureLabel.stringValue boundingRectWithSize:NSMakeSize(width, CGFLOAT_MAX)
+                                                                         options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading
+                                                                      attributes:signatureAttrs];
+    CGFloat titleHeight = MAX(ceil(titleRect.size.height), self.titleLabel.font.pointSize * 1.2);
+    CGFloat signatureHeight = MAX(ceil(signatureRect.size.height), self.signatureLabel.font.pointSize * 1.2);
     self.titleLabel.frame = NSMakeRect(padding, signatureHeight + 8.0, width, titleHeight);
     self.signatureLabel.frame = NSMakeRect(padding, 0.0, width, signatureHeight);
 }
@@ -754,13 +764,43 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @property (nonatomic, strong) NSVisualEffectView *rootVisualEffectView;
 @end
 
+@interface SettingsWindow : NSWindow
+@end
+
+@implementation SettingsWindow
+
+- (BOOL)performKeyEquivalent:(NSEvent *)event {
+    NSEventModifierFlags modifiers = event.modifierFlags & NSEventModifierFlagDeviceIndependentFlagsMask;
+    if (modifiers == NSEventModifierFlagControl) {
+        NSString *characters = event.charactersIgnoringModifiers.lowercaseString;
+        SEL action = NULL;
+        if ([characters isEqualToString:@"c"]) {
+            action = @selector(copy:);
+        } else if ([characters isEqualToString:@"v"]) {
+            action = @selector(paste:);
+        } else if ([characters isEqualToString:@"x"]) {
+            action = @selector(cut:);
+        } else if ([characters isEqualToString:@"a"]) {
+            action = @selector(selectAll:);
+        }
+
+        if (action != NULL) {
+            return [NSApp sendAction:action to:nil from:self];
+        }
+    }
+
+    return [super performKeyEquivalent:event];
+}
+
+@end
+
 @implementation SettingsWindowController
 
 - (instancetype)initWithConfig:(MirrorConfig *)config {
-    NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 470, 470)
-                                                   styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
-                                                     backing:NSBackingStoreBuffered
-                                                       defer:NO];
+    NSWindow *window = [[SettingsWindow alloc] initWithContentRect:NSMakeRect(0, 0, 470, 470)
+                                                         styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
+                                                           backing:NSBackingStoreBuffered
+                                                             defer:NO];
     self = [super initWithWindow:window];
     if (self) {
         _config = config;
