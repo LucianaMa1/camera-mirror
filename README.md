@@ -27,7 +27,9 @@ It works great with:
 - Opens settings by hover, click, or double-clicking the watermark text
 - Can be built into a double-clickable macOS `.app`
 
-## How To Use It
+## Build The App
+
+If you want to use the app, the main path is to build it locally from source:
 
 Open the Terminal on your Mac and paste the following code in
 
@@ -42,6 +44,14 @@ open "Camera Mirror.app"
 This will generate: `Camera Mirror.app` and open the app for you.
 
 After you have built it for the first time, you can access this app from the applicartion menu on your computer next time.
+
+The first time you open it, macOS may ask for camera permission.
+
+If the permission prompt does not appear automatically, go to:
+
+`System Settings` -> `Privacy & Security` -> `Camera`
+
+and allow Camera Mirror to access the camera.
 
 ## Typical Workflow
 
