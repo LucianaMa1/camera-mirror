@@ -523,12 +523,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     CGFloat horizontalPadding = 18.0;
     CGFloat verticalPadding = 8.0;
     CGFloat width = self.bounds.size.width - (horizontalPadding * 2.0);
-    NSDictionary *signatureAttrs = @{ NSFontAttributeName: self.signatureLabel.font ?: [NSFont systemFontOfSize:22.0] };
-    NSRect signatureRect = [self.signatureLabel.stringValue boundingRectWithSize:NSMakeSize(width, CGFLOAT_MAX)
-                                                                         options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading
-                                                                      attributes:signatureAttrs];
-    CGFloat signatureHeight = MAX(ceil(signatureRect.size.height), self.signatureLabel.font.pointSize * 1.2);
-    self.signatureLabel.frame = NSMakeRect(horizontalPadding, verticalPadding, width, signatureHeight);
+    CGFloat height = MAX(self.bounds.size.height - (verticalPadding * 2.0), self.signatureLabel.font.pointSize * 1.2);
+    self.signatureLabel.frame = NSMakeRect(horizontalPadding, verticalPadding, width, height);
 }
 
 - (void)mouseDown:(NSEvent *)event {
