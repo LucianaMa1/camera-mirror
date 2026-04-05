@@ -124,6 +124,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @interface MirrorContentView : NSView
 - (void)applyConfig:(MirrorConfig *)config;
 @property (nonatomic, copy) void (^onToggleSettings)(void);
+@property (nonatomic, copy) void (^onQuit)(void);
 @end
 
 @interface TextOverlayView : NSView
@@ -139,6 +140,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @property (nonatomic, strong) CAGradientLayer *overlayGradient;
 @property (nonatomic, strong) NSTextField *statusLabel;
 @property (nonatomic, strong) NSButton *settingsButton;
+@property (nonatomic, strong) NSButton *quitButton;
 @property (nonatomic, strong) dispatch_queue_t sessionQueue;
 @property (nonatomic, strong) MirrorConfig *currentConfig;
 @property (nonatomic, strong) NSTrackingArea *hoverTrackingArea;
@@ -205,6 +207,19 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.settingsButton.hidden = YES;
     self.settingsButton.toolTip = @"Open or hide settings";
     [self addSubview:self.settingsButton];
+
+    self.quitButton = [NSButton buttonWithTitle:@"×" target:self action:@selector(quitApp:)];
+    self.quitButton.bezelStyle = NSBezelStyleRegularSquare;
+    self.quitButton.bordered = NO;
+    self.quitButton.font = [NSFont systemFontOfSize:18.0 weight:NSFontWeightSemibold];
+    self.quitButton.contentTintColor = [NSColor colorWithWhite:1.0 alpha:0.95];
+    self.quitButton.wantsLayer = YES;
+    self.quitButton.layer.backgroundColor = [NSColor colorWithCalibratedRed:0.65 green:0.11 blue:0.16 alpha:0.72].CGColor;
+    self.quitButton.layer.cornerRadius = 14.0;
+    self.quitButton.alphaValue = 0.0;
+    self.quitButton.hidden = YES;
+    self.quitButton.toolTip = @"Quit Camera Mirror";
+    [self addSubview:self.quitButton];
 }
 
 - (NSTextField *)makeLabel {
@@ -233,6 +248,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     CGFloat topInset = MAX(self.bounds.size.width * 0.06, 14.0);
     self.settingsButton.frame = NSMakeRect((self.bounds.size.width - buttonSize) / 2.0, self.bounds.size.height - topInset - buttonSize, buttonSize, buttonSize);
     self.settingsButton.layer.cornerRadius = buttonSize / 2.0;
+    self.quitButton.frame = NSMakeRect(self.bounds.size.width - buttonSize - topInset, self.bounds.size.height - topInset - buttonSize, buttonSize, buttonSize);
+    self.quitButton.layer.cornerRadius = buttonSize / 2.0;
     self.statusLabel.frame = NSMakeRect(self.bounds.size.width * 0.18, (self.bounds.size.height / 2.0) - 22.0, self.bounds.size.width * 0.64, 44.0);
 }
 
@@ -374,18 +391,29 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
 - (void)setSettingsButtonVisible:(BOOL)visible animated:(BOOL)animated {
     self.settingsButton.hidden = NO;
+    self.quitButton.hidden = NO;
     CGFloat targetAlpha = visible ? 1.0 : 0.0;
 
     if (animated) {
         [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
             context.duration = 0.14;
             self.settingsButton.animator.alphaValue = targetAlpha;
+            self.quitButton.animator.alphaValue = targetAlpha;
         } completionHandler:^{
             self.settingsButton.hidden = !visible;
+            self.quitButton.hidden = !visible;
         }];
     } else {
         self.settingsButton.alphaValue = targetAlpha;
         self.settingsButton.hidden = !visible;
+        self.quitButton.alphaValue = targetAlpha;
+        self.quitButton.hidden = !visible;
+    }
+}
+
+- (void)quitApp:(id)sender {
+    if (self.onQuit != nil) {
+        self.onQuit();
     }
 }
 
@@ -1021,6 +1049,10 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         } else {
             [weakSelf showSettings];
         }
+    };
+
+    self.mirrorPanel.mirrorView.onQuit = ^{
+        [NSApp terminate:nil];
     };
 
     self.textOverlayPanel.overlayView.onDragMove = ^(NSPoint origin) {
