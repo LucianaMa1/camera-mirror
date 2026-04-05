@@ -281,9 +281,13 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
     CGFloat buttonSize = MAX(self.bounds.size.width * 0.12, 28.0);
     CGFloat topInset = MAX(self.bounds.size.width * 0.06, 14.0);
-    self.settingsButton.frame = NSMakeRect((self.bounds.size.width - buttonSize) / 2.0, self.bounds.size.height - topInset - buttonSize, buttonSize, buttonSize);
+    CGFloat buttonSpacing = MAX(buttonSize * 0.28, 8.0);
+    CGFloat totalButtonsWidth = (buttonSize * 2.0) + buttonSpacing;
+    CGFloat buttonStartX = (self.bounds.size.width - totalButtonsWidth) / 2.0;
+    CGFloat buttonY = self.bounds.size.height - topInset - buttonSize;
+    self.settingsButton.frame = NSMakeRect(buttonStartX, buttonY, buttonSize, buttonSize);
     self.settingsButton.layer.cornerRadius = buttonSize / 2.0;
-    self.quitButton.frame = NSMakeRect(self.bounds.size.width - buttonSize - topInset, self.bounds.size.height - topInset - buttonSize, buttonSize, buttonSize);
+    self.quitButton.frame = NSMakeRect(NSMaxX(self.settingsButton.frame) + buttonSpacing, buttonY, buttonSize, buttonSize);
     self.quitButton.layer.cornerRadius = buttonSize / 2.0;
     self.statusLabel.frame = NSMakeRect(self.bounds.size.width * 0.18, (self.bounds.size.height / 2.0) - 22.0, self.bounds.size.width * 0.64, 44.0);
 }
@@ -812,10 +816,10 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.signatureColorWell = [[NSColorWell alloc] initWithFrame:NSZeroRect];
     self.displayFontSlider = [[NSSlider alloc] initWithFrame:NSZeroRect];
     self.displayFontSlider.minValue = 18.0;
-    self.displayFontSlider.maxValue = 44.0;
+    self.displayFontSlider.maxValue = 100.0;
     self.signatureFontSlider = [[NSSlider alloc] initWithFrame:NSZeroRect];
     self.signatureFontSlider.minValue = 16.0;
-    self.signatureFontSlider.maxValue = 38.0;
+    self.signatureFontSlider.maxValue = 80.0;
     self.displayFontValueLabel = [NSTextField labelWithString:@""];
     self.signatureFontValueLabel = [NSTextField labelWithString:@""];
     self.sizeSlider = [[NSSlider alloc] initWithFrame:NSZeroRect];
