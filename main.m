@@ -619,6 +619,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 - (instancetype)initWithConfig:(MirrorConfig *)config;
 - (void)applyConfig:(MirrorConfig *)config;
 - (void)moveNearMirrorFrame:(NSRect)mirrorFrame;
+- (void)clampToVisibleFrameForScreen:(NSScreen *)screen;
 @end
 
 @implementation MirrorPanel
@@ -728,6 +729,19 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     CGFloat spacing = 12.0;
     NSPoint origin = NSMakePoint(NSMidX(mirrorFrame) - (width / 2.0), NSMinY(mirrorFrame) - height - spacing);
     [self setFrame:NSMakeRect(origin.x, origin.y, width, height) display:YES];
+}
+
+- (void)clampToVisibleFrameForScreen:(NSScreen *)screen {
+    NSScreen *targetScreen = screen ?: self.screen ?: NSScreen.mainScreen ?: NSScreen.screens.firstObject;
+    if (targetScreen == nil) {
+        return;
+    }
+
+    NSRect visibleFrame = targetScreen.visibleFrame;
+    NSRect frame = self.frame;
+    frame.origin.x = MIN(MAX(frame.origin.x, NSMinX(visibleFrame)), NSMaxX(visibleFrame) - frame.size.width);
+    frame.origin.y = MIN(MAX(frame.origin.y, NSMinY(visibleFrame)), NSMaxY(visibleFrame) - frame.size.height);
+    [self setFrame:frame display:YES];
 }
 
 @end
@@ -1022,7 +1036,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     card.layer.borderWidth = 1.0;
     card.layer.borderColor = [NSColor colorWithWhite:1.0 alpha:0.08].CGColor;
 
-    NSTextField *titleLabel = [NSTextField labelWithString:@"Preview"];
+    NSTextField *titleLabel = [NSTextField labelWithString:@"Signature Styling Preview"];
     titleLabel.font = [NSFont systemFontOfSize:12.0 weight:NSFontWeightBold];
     titleLabel.textColor = [NSColor colorWithCalibratedRed:0.88 green:0.41 blue:0.47 alpha:1.0];
 
@@ -1031,6 +1045,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     previewSurface.wantsLayer = YES;
     previewSurface.layer.cornerRadius = 14.0;
     previewSurface.layer.backgroundColor = [NSColor colorWithWhite:0.08 alpha:0.6].CGColor;
+    previewSurface.layer.borderWidth = 1.0;
+    previewSurface.layer.borderColor = [NSColor colorWithWhite:1.0 alpha:0.12].CGColor;
 
     [previewSurface addSubview:self.signaturePreviewLabel];
 
@@ -1259,7 +1275,13 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         [weakSelf.textOverlayPanel applyConfig:updatedConfig];
         if (updatedConfig.overlayOriginX != CGFLOAT_MAX && updatedConfig.overlayOriginY != CGFLOAT_MAX) {
             [weakSelf.textOverlayPanel setFrameOrigin:NSMakePoint(updatedConfig.overlayOriginX, updatedConfig.overlayOriginY)];
+        } else {
+            [weakSelf.textOverlayPanel moveNearMirrorFrame:weakSelf.mirrorPanel.frame];
         }
+        [weakSelf.textOverlayPanel clampToVisibleFrameForScreen:weakSelf.mirrorPanel.screen];
+        updatedConfig.overlayOriginX = weakSelf.textOverlayPanel.frame.origin.x;
+        updatedConfig.overlayOriginY = weakSelf.textOverlayPanel.frame.origin.y;
+        [SettingsStore saveConfig:updatedConfig];
         [weakSelf.mirrorPanel orderFrontRegardless];
         [weakSelf.textOverlayPanel orderFrontRegardless];
     };
