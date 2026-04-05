@@ -33,7 +33,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @implementation MirrorConfig
 + (instancetype)defaults {
     MirrorConfig *config = [[MirrorConfig alloc] init];
-    config.signature = @"shine softly";
+    config.signature = @"";
     config.signatureColor = [NSColor colorWithCalibratedRed:1.0 green:0.72 blue:0.80 alpha:1.0];
     config.signatureFontSize = 24.0;
     config.diameter = 300.0;
