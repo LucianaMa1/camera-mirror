@@ -497,6 +497,9 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         self.signatureLabel.bordered = NO;
         self.signatureLabel.drawsBackground = NO;
         self.signatureLabel.alignment = NSTextAlignmentLeft;
+        self.signatureLabel.selectable = NO;
+        self.signatureLabel.editable = NO;
+        self.signatureLabel.allowsEditingTextAttributes = NO;
         [self configureWrappingLabel:self.signatureLabel];
         self.signatureLabel.font = [self signatureFontWithSize:24.0];
         [self addSubview:self.signatureLabel];
@@ -508,6 +511,14 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         self.signatureLabel.shadow = shadow;
     }
     return self;
+}
+
+- (NSView *)hitTest:(NSPoint)point {
+    NSView *hitView = [super hitTest:point];
+    if (hitView == self.signatureLabel) {
+        return self;
+    }
+    return hitView;
 }
 
 - (void)applyConfig:(MirrorConfig *)config {
