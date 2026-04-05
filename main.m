@@ -727,9 +727,13 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     titleLabel.font = [NSFont systemFontOfSize:24.0 weight:NSFontWeightSemibold];
     titleLabel.textColor = NSColor.labelColor;
 
-    NSTextField *introLabel = [NSTextField wrappingLabelWithString:@"Double-click the watermark text to reopen this panel. Changes apply realtime."];
-    introLabel.font = [NSFont systemFontOfSize:13.5];
+    NSTextField *introLabel = [NSTextField wrappingLabelWithString:@"Double-click the watermark text or hover over the camera to reopen this panel. Changes update instantly."];
+    introLabel.font = [NSFont systemFontOfSize:13.0];
     introLabel.textColor = NSColor.secondaryLabelColor;
+    introLabel.alignment = NSTextAlignmentCenter;
+    introLabel.maximumNumberOfLines = 0;
+    introLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    [[introLabel.widthAnchor constraintLessThanOrEqualToConstant:360.0] setActive:YES];
 
     self.displayField = [[NSTextField alloc] initWithFrame:NSZeroRect];
     self.displayField.placeholderString = @"Main text";
