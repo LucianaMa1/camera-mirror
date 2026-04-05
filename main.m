@@ -816,10 +816,10 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.signatureColorWell = [[NSColorWell alloc] initWithFrame:NSZeroRect];
     self.displayFontSlider = [[NSSlider alloc] initWithFrame:NSZeroRect];
     self.displayFontSlider.minValue = 18.0;
-    self.displayFontSlider.maxValue = 100.0;
+    self.displayFontSlider.maxValue = 80.0;
     self.signatureFontSlider = [[NSSlider alloc] initWithFrame:NSZeroRect];
     self.signatureFontSlider.minValue = 16.0;
-    self.signatureFontSlider.maxValue = 80.0;
+    self.signatureFontSlider.maxValue = 64.0;
     self.displayFontValueLabel = [NSTextField labelWithString:@""];
     self.signatureFontValueLabel = [NSTextField labelWithString:@""];
     self.sizeSlider = [[NSSlider alloc] initWithFrame:NSZeroRect];
