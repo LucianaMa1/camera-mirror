@@ -7,6 +7,8 @@ static NSString * const kTextColorKey = @"mirror.textColor";
 static NSString * const kSignatureColorKey = @"mirror.signatureColor";
 static NSString * const kDiameterKey = @"mirror.diameter";
 static NSString * const kShapeKey = @"mirror.shape";
+static NSString * const kMirrorOriginXKey = @"mirror.windowOriginX";
+static NSString * const kMirrorOriginYKey = @"mirror.windowOriginY";
 static NSString * const kOverlayOriginXKey = @"mirror.overlayOriginX";
 static NSString * const kOverlayOriginYKey = @"mirror.overlayOriginY";
 
@@ -23,6 +25,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @property (nonatomic, strong) NSColor *signatureColor;
 @property (nonatomic, assign) CGFloat diameter;
 @property (nonatomic, assign) MirrorShape shape;
+@property (nonatomic, assign) CGFloat mirrorOriginX;
+@property (nonatomic, assign) CGFloat mirrorOriginY;
 @property (nonatomic, assign) CGFloat overlayOriginX;
 @property (nonatomic, assign) CGFloat overlayOriginY;
 + (instancetype)defaults;
@@ -37,6 +41,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     config.signatureColor = [NSColor colorWithCalibratedRed:1.0 green:0.72 blue:0.80 alpha:1.0];
     config.diameter = 300.0;
     config.shape = MirrorShapeCircle;
+    config.mirrorOriginX = CGFLOAT_MAX;
+    config.mirrorOriginY = CGFLOAT_MAX;
     config.overlayOriginX = CGFLOAT_MAX;
     config.overlayOriginY = CGFLOAT_MAX;
     return config;
@@ -89,6 +95,14 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         config.shape = (MirrorShape)shape;
     }
 
+    if ([defaults objectForKey:kMirrorOriginXKey] != nil) {
+        config.mirrorOriginX = [defaults doubleForKey:kMirrorOriginXKey];
+    }
+
+    if ([defaults objectForKey:kMirrorOriginYKey] != nil) {
+        config.mirrorOriginY = [defaults doubleForKey:kMirrorOriginYKey];
+    }
+
     if ([defaults objectForKey:kOverlayOriginXKey] != nil) {
         config.overlayOriginX = [defaults doubleForKey:kOverlayOriginXKey];
     }
@@ -106,6 +120,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [defaults setObject:config.signature forKey:kSignatureKey];
     [defaults setDouble:config.diameter forKey:kDiameterKey];
     [defaults setInteger:config.shape forKey:kShapeKey];
+    [defaults setDouble:config.mirrorOriginX forKey:kMirrorOriginXKey];
+    [defaults setDouble:config.mirrorOriginY forKey:kMirrorOriginYKey];
     [defaults setDouble:config.overlayOriginX forKey:kOverlayOriginXKey];
     [defaults setDouble:config.overlayOriginY forKey:kOverlayOriginYKey];
 
@@ -125,6 +141,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 - (void)applyConfig:(MirrorConfig *)config;
 @property (nonatomic, copy) void (^onToggleSettings)(void);
 @property (nonatomic, copy) void (^onQuit)(void);
+@property (nonatomic, copy) void (^onDragMove)(NSPoint origin);
 @end
 
 @interface TextOverlayView : NSView
@@ -441,6 +458,10 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
     NSPoint newOrigin = NSMakePoint(self.dragStartWindowOrigin.x + deltaX, self.dragStartWindowOrigin.y + deltaY);
     [self.window setFrameOrigin:newOrigin];
+
+    if (self.onDragMove != nil) {
+        self.onDragMove(newOrigin);
+    }
 }
 
 @end
@@ -1022,7 +1043,15 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 - (void)createMirrorPanel {
     self.mirrorPanel = [[MirrorPanel alloc] initWithSize:self.config.diameter];
     [self.mirrorPanel.mirrorView applyConfig:self.config];
-    [self.mirrorPanel moveToBottomRightWithSize:self.config.diameter];
+
+    if (self.config.mirrorOriginX != CGFLOAT_MAX && self.config.mirrorOriginY != CGFLOAT_MAX) {
+        [self.mirrorPanel setFrameOrigin:NSMakePoint(self.config.mirrorOriginX, self.config.mirrorOriginY)];
+    } else {
+        [self.mirrorPanel moveToBottomRightWithSize:self.config.diameter];
+        self.config.mirrorOriginX = self.mirrorPanel.frame.origin.x;
+        self.config.mirrorOriginY = self.mirrorPanel.frame.origin.y;
+        [SettingsStore saveConfig:self.config];
+    }
 }
 
 - (void)createTextOverlayPanel {
@@ -1075,6 +1104,12 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         [NSApp terminate:nil];
     };
 
+    self.mirrorPanel.mirrorView.onDragMove = ^(NSPoint origin) {
+        weakSelf.config.mirrorOriginX = origin.x;
+        weakSelf.config.mirrorOriginY = origin.y;
+        [SettingsStore saveConfig:weakSelf.config];
+    };
+
     self.textOverlayPanel.overlayView.onDragMove = ^(NSPoint origin) {
         weakSelf.config.overlayOriginX = origin.x;
         weakSelf.config.overlayOriginY = origin.y;
@@ -1098,6 +1133,9 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
 - (void)repositionMirror {
     [self.mirrorPanel moveToBottomRightWithSize:self.config.diameter];
+    self.config.mirrorOriginX = self.mirrorPanel.frame.origin.x;
+    self.config.mirrorOriginY = self.mirrorPanel.frame.origin.y;
+    [SettingsStore saveConfig:self.config];
     [self.mirrorPanel orderFrontRegardless];
 }
 
