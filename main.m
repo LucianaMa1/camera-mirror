@@ -623,6 +623,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 - (instancetype)initWithSize:(CGFloat)size;
 - (void)moveToBottomRightWithSize:(CGFloat)size;
 - (void)resizeToSizePreservingCenter:(CGFloat)size;
+- (void)clampToVisibleFrame;
 @end
 
 @interface TextOverlayPanel : NSPanel
@@ -691,6 +692,19 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     }
 
     [self setFrame:nextFrame display:YES animate:NO];
+}
+
+- (void)clampToVisibleFrame {
+    NSScreen *screen = self.screen ?: NSScreen.mainScreen ?: NSScreen.screens.firstObject;
+    if (screen == nil) {
+        return;
+    }
+
+    NSRect visibleFrame = screen.visibleFrame;
+    NSRect frame = self.frame;
+    frame.origin.x = MIN(MAX(frame.origin.x, NSMinX(visibleFrame)), NSMaxX(visibleFrame) - frame.size.width);
+    frame.origin.y = MIN(MAX(frame.origin.y, NSMinY(visibleFrame)), NSMaxY(visibleFrame) - frame.size.height);
+    [self setFrame:frame display:YES];
 }
 
 @end
@@ -1243,6 +1257,14 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
     if (self.config.mirrorOriginX != CGFLOAT_MAX && self.config.mirrorOriginY != CGFLOAT_MAX) {
         [self.mirrorPanel setFrameOrigin:NSMakePoint(self.config.mirrorOriginX, self.config.mirrorOriginY)];
+        [self.mirrorPanel clampToVisibleFrame];
+        BOOL mirrorPositionWasClamped = (self.config.mirrorOriginX != self.mirrorPanel.frame.origin.x) || (self.config.mirrorOriginY != self.mirrorPanel.frame.origin.y);
+        if (mirrorPositionWasClamped) {
+            [self.mirrorPanel moveToBottomRightWithSize:self.config.diameter];
+            self.config.mirrorOriginX = self.mirrorPanel.frame.origin.x;
+            self.config.mirrorOriginY = self.mirrorPanel.frame.origin.y;
+            [SettingsStore saveConfig:self.config];
+        }
     } else {
         [self.mirrorPanel moveToBottomRightWithSize:self.config.diameter];
         self.config.mirrorOriginX = self.mirrorPanel.frame.origin.x;
