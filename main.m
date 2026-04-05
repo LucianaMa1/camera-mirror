@@ -459,6 +459,10 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     return [NSFont fontWithName:@"Snell Roundhand Bold" size:size] ?: ([NSFont fontWithName:@"Didot" size:size] ?: [NSFont systemFontOfSize:size weight:NSFontWeightMedium]);
 }
 
+- (BOOL)isFlipped {
+    return YES;
+}
+
 - (void)configureWrappingLabel:(NSTextField *)label {
     label.maximumNumberOfLines = 0;
     label.lineBreakMode = NSLineBreakByWordWrapping;
@@ -473,7 +477,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         self.wantsLayer = YES;
         self.layer.backgroundColor = NSColor.clearColor.CGColor;
 
-        self.signatureLabel = [NSTextField labelWithString:@""];
+        self.signatureLabel = [NSTextField wrappingLabelWithString:@""];
         self.signatureLabel.backgroundColor = NSColor.clearColor;
         self.signatureLabel.bordered = NO;
         self.signatureLabel.drawsBackground = NO;
@@ -522,7 +526,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [super layout];
     CGFloat horizontalPadding = 18.0;
     CGFloat verticalPadding = 8.0;
-    CGFloat width = self.bounds.size.width - (horizontalPadding * 2.0);
+    CGFloat width = MAX(self.bounds.size.width - (horizontalPadding * 2.0), 0.0);
     CGFloat height = MAX(self.bounds.size.height - (verticalPadding * 2.0), self.signatureLabel.font.pointSize * 1.2);
     self.signatureLabel.frame = NSMakeRect(horizontalPadding, verticalPadding, width, height);
 }
