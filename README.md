@@ -16,6 +16,8 @@ It works great with:
 - QuickTime Player
 - free screen recording tools
 - your usual video workflow
+- 
+<img width="1257" height="1375" alt="camera mirror" src="https://github.com/user-attachments/assets/610ce759-e878-4984-bfce-f035acc54cf3" />
 
 ## Why I made this
 
