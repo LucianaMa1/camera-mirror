@@ -498,6 +498,14 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     return [NSFont fontWithName:@"Snell Roundhand Bold" size:size] ?: ([NSFont fontWithName:@"Didot" size:size] ?: [NSFont systemFontOfSize:size weight:NSFontWeightMedium]);
 }
 
+- (void)configureWrappingLabel:(NSTextField *)label {
+    label.maximumNumberOfLines = 0;
+    label.lineBreakMode = NSLineBreakByWordWrapping;
+    label.cell.wraps = YES;
+    label.cell.scrollable = NO;
+    label.usesSingleLineMode = NO;
+}
+
 - (instancetype)initWithFrame:(NSRect)frameRect {
     self = [super initWithFrame:frameRect];
     if (self) {
@@ -509,8 +517,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         self.titleLabel.bordered = NO;
         self.titleLabel.drawsBackground = NO;
         self.titleLabel.alignment = NSTextAlignmentLeft;
-        self.titleLabel.maximumNumberOfLines = 0;
-        self.titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
+        [self configureWrappingLabel:self.titleLabel];
         self.titleLabel.font = [self displayFontWithSize:28.0];
         [self addSubview:self.titleLabel];
 
@@ -519,8 +526,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         self.signatureLabel.bordered = NO;
         self.signatureLabel.drawsBackground = NO;
         self.signatureLabel.alignment = NSTextAlignmentLeft;
-        self.signatureLabel.maximumNumberOfLines = 0;
-        self.signatureLabel.lineBreakMode = NSLineBreakByWordWrapping;
+        [self configureWrappingLabel:self.signatureLabel];
         self.signatureLabel.font = [self signatureFontWithSize:24.0];
         [self addSubview:self.signatureLabel];
 
