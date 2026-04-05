@@ -152,6 +152,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @interface TextOverlayView ()
 @property (nonatomic, strong) NSTextField *signatureLabel;
 @property (nonatomic, strong) MirrorConfig *currentConfig;
+@property (nonatomic, strong) NSTrackingArea *dragTrackingArea;
 @property (nonatomic, assign) NSPoint dragStartLocation;
 @property (nonatomic, assign) NSPoint dragStartOrigin;
 @end
@@ -531,6 +532,28 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.signatureLabel.frame = NSMakeRect(horizontalPadding, verticalPadding, width, height);
 }
 
+- (void)updateTrackingAreas {
+    [super updateTrackingAreas];
+
+    if (self.dragTrackingArea != nil) {
+        [self removeTrackingArea:self.dragTrackingArea];
+    }
+
+    self.dragTrackingArea = [[NSTrackingArea alloc] initWithRect:self.bounds
+                                                         options:NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways | NSTrackingInVisibleRect
+                                                           owner:self
+                                                        userInfo:nil];
+    [self addTrackingArea:self.dragTrackingArea];
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+    [[NSCursor openHandCursor] push];
+}
+
+- (void)mouseExited:(NSEvent *)event {
+    [NSCursor pop];
+}
+
 - (void)mouseDown:(NSEvent *)event {
     if (event.clickCount == 2) {
         if (self.onOpenSettings != nil) {
@@ -539,6 +562,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         return;
     }
 
+    [[NSCursor closedHandCursor] push];
     self.dragStartLocation = [NSEvent mouseLocation];
     if (self.window != nil) {
         self.dragStartOrigin = self.window.frame.origin;
@@ -560,6 +584,11 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     if (self.onDragMove != nil) {
         self.onDragMove(newOrigin);
     }
+}
+
+- (void)mouseUp:(NSEvent *)event {
+    [NSCursor pop];
+    [[NSCursor openHandCursor] push];
 }
 
 @end
@@ -682,7 +711,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 - (void)moveNearMirrorFrame:(NSRect)mirrorFrame {
     CGFloat width = self.frame.size.width;
     CGFloat height = self.frame.size.height;
-    NSPoint origin = NSMakePoint(NSMinX(mirrorFrame) - width - 24.0, NSMaxY(mirrorFrame) - height);
+    CGFloat spacing = 12.0;
+    NSPoint origin = NSMakePoint(NSMidX(mirrorFrame) - (width / 2.0), NSMinY(mirrorFrame) - height - spacing);
     [self setFrame:NSMakeRect(origin.x, origin.y, width, height) display:YES];
 }
 
