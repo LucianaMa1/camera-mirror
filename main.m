@@ -517,11 +517,14 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 }
 
 - (NSView *)hitTest:(NSPoint)point {
-    NSView *hitView = [super hitTest:point];
-    if (hitView == self.signatureLabel) {
+    if (NSPointInRect(point, self.bounds)) {
         return self;
     }
-    return hitView;
+    return [super hitTest:point];
+}
+
+- (BOOL)acceptsFirstMouse:(NSEvent *)event {
+    return YES;
 }
 
 - (void)applyConfig:(MirrorConfig *)config {
