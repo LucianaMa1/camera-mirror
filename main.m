@@ -1130,6 +1130,16 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.signatureFontValueLabel.stringValue = [NSString stringWithFormat:@"%d pt", (int)self.config.signatureFontSize];
     self.sizeValueLabel.stringValue = [NSString stringWithFormat:@"%d px", (int)self.config.diameter];
     [self updatePreview];
+
+    BOOL mirrorSettingChanged = (sender == self.sizeSlider || sender == self.shapePopup);
+    if (mirrorSettingChanged) {
+        self.sourceConfig.diameter = self.config.diameter;
+        self.sourceConfig.shape = self.config.shape;
+        [SettingsStore saveConfig:self.sourceConfig];
+        if (self.onConfigChange != nil) {
+            self.onConfigChange(self.sourceConfig);
+        }
+    }
 }
 
 - (void)updatePreview {
