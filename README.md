@@ -24,7 +24,6 @@ It works great with:
 - Lets you drag the watermark separately from the mirror
 - Opens settings by hover, click, or double-clicking the watermark text
 - Can be built into a double-clickable macOS `.app`
-- 
 <img width="800" height="500" alt="Screenshot 2026-04-05 at 11 15 50 PM" src="https://github.com/user-attachments/assets/9c974f0a-a54e-4dc4-b621-3a49e7db69f2" />
 
 ## How to use it
