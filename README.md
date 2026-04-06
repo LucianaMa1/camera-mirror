@@ -15,8 +15,6 @@ It works great with:
 - free screen recording tools
 - your usual video workflow
 
-<img width="1257" height="1375" alt="camera mirror" src="https://github.com/user-attachments/assets/610ce759-e878-4984-bfce-f035acc54cf3" />
-
 ## What it does
 
 - Opens your front camera and mirrors it live
@@ -27,9 +25,7 @@ It works great with:
 - Opens settings by hover, click, or double-clicking the watermark text
 - Can be built into a double-clickable macOS `.app`
 
-## Build The App
-
-If you want to use the app, the main path is to build it locally from source:
+## How to use it
 
 Open the Terminal on your Mac and paste the following code in
 
