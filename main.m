@@ -4,6 +4,7 @@
 static NSString * const kSignatureKey = @"mirror.signature";
 static NSString * const kSignatureColorKey = @"mirror.signatureColor";
 static NSString * const kSignatureFontSizeKey = @"mirror.signatureFontSize";
+static NSString * const kSignatureFontNameKey = @"mirror.signatureFontName";
 static NSString * const kDiameterKey = @"mirror.diameter";
 static NSString * const kShapeKey = @"mirror.shape";
 static NSString * const kMirrorOriginXKey = @"mirror.windowOriginX";
@@ -21,6 +22,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @property (nonatomic, copy) NSString *signature;
 @property (nonatomic, strong) NSColor *signatureColor;
 @property (nonatomic, assign) CGFloat signatureFontSize;
+@property (nonatomic, copy) NSString *signatureFontName;
 @property (nonatomic, assign) CGFloat diameter;
 @property (nonatomic, assign) MirrorShape shape;
 @property (nonatomic, assign) CGFloat mirrorOriginX;
@@ -36,6 +38,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     config.signature = @"";
     config.signatureColor = [NSColor colorWithCalibratedRed:1.0 green:0.72 blue:0.80 alpha:1.0];
     config.signatureFontSize = 24.0;
+    config.signatureFontName = @"Snell Roundhand Bold";
     config.diameter = 300.0;
     config.shape = MirrorShapeCircle;
     config.mirrorOriginX = CGFLOAT_MAX;
@@ -50,6 +53,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     copy.signature = [self.signature copy];
     copy.signatureColor = self.signatureColor;
     copy.signatureFontSize = self.signatureFontSize;
+    copy.signatureFontName = [self.signatureFontName copy];
     copy.diameter = self.diameter;
     copy.shape = self.shape;
     copy.mirrorOriginX = self.mirrorOriginX;
@@ -88,6 +92,11 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         config.signatureFontSize = (CGFloat)signatureFontSize;
     }
 
+    NSString *signatureFontName = [defaults stringForKey:kSignatureFontNameKey];
+    if (signatureFontName.length > 0) {
+        config.signatureFontName = signatureFontName;
+    }
+
     double diameter = [defaults doubleForKey:kDiameterKey];
     if (diameter > 0) {
         config.diameter = (CGFloat)diameter;
@@ -120,6 +129,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 + (void)saveConfig:(MirrorConfig *)config {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     [defaults setObject:config.signature forKey:kSignatureKey];
+    [defaults setObject:config.signatureFontName forKey:kSignatureFontNameKey];
     [defaults setDouble:config.diameter forKey:kDiameterKey];
     [defaults setInteger:config.shape forKey:kShapeKey];
     [defaults setDouble:config.signatureFontSize forKey:kSignatureFontSizeKey];
@@ -474,8 +484,30 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
 @implementation TextOverlayView
 
+- (NSFont *)resolvedSignatureFontNamed:(NSString *)fontName size:(CGFloat)size {
+    NSArray<NSString *> *candidates = @[
+        fontName ?: @"",
+        @"Snell Roundhand Bold",
+        @"Didot Italic",
+        @"Baskerville-Italic",
+        @"Avenir Next Medium"
+    ];
+
+    for (NSString *candidate in candidates) {
+        if (candidate.length == 0) {
+            continue;
+        }
+        NSFont *font = [NSFont fontWithName:candidate size:size];
+        if (font != nil) {
+            return font;
+        }
+    }
+
+    return [NSFont systemFontOfSize:size weight:NSFontWeightMedium];
+}
+
 - (NSFont *)signatureFontWithSize:(CGFloat)size {
-    return [NSFont fontWithName:@"Snell Roundhand Bold" size:size] ?: ([NSFont fontWithName:@"Didot" size:size] ?: [NSFont systemFontOfSize:size weight:NSFontWeightMedium]);
+    return [self resolvedSignatureFontNamed:self.currentConfig.signatureFontName size:size];
 }
 
 - (BOOL)isFlipped {
@@ -794,6 +826,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @property (nonatomic, strong) NSTextField *signatureField;
 @property (nonatomic, strong) NSColorWell *signatureColorWell;
 @property (nonatomic, strong) NSSlider *signatureFontSlider;
+@property (nonatomic, strong) NSPopUpButton *signatureFontPopup;
 @property (nonatomic, strong) NSTextField *signatureFontValueLabel;
 @property (nonatomic, strong) NSTextField *signaturePreviewLabel;
 @property (nonatomic, strong) NSSlider *sizeSlider;
@@ -834,8 +867,58 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
 @implementation SettingsWindowController
 
+- (NSArray<NSDictionary<NSString *, NSString *> *> *)signatureFontOptions {
+    return @[
+        @{ @"title": @"Signature", @"font": @"Snell Roundhand Bold" },
+        @{ @"title": @"Elegant", @"font": @"Didot Italic" },
+        @{ @"title": @"Classic", @"font": @"Baskerville-Italic" },
+        @{ @"title": @"Clean", @"font": @"Avenir Next Medium" }
+    ];
+}
+
+- (NSFont *)signatureFontForName:(NSString *)fontName size:(CGFloat)size {
+    NSArray<NSString *> *candidates = @[
+        fontName ?: @"",
+        @"Snell Roundhand Bold",
+        @"Didot Italic",
+        @"Baskerville-Italic",
+        @"Avenir Next Medium"
+    ];
+
+    for (NSString *candidate in candidates) {
+        if (candidate.length == 0) {
+            continue;
+        }
+        NSFont *font = [NSFont fontWithName:candidate size:size];
+        if (font != nil) {
+            return font;
+        }
+    }
+
+    return [NSFont systemFontOfSize:size weight:NSFontWeightMedium];
+}
+
+- (NSInteger)indexForSignatureFontName:(NSString *)fontName {
+    NSArray<NSDictionary<NSString *, NSString *> *> *options = [self signatureFontOptions];
+    for (NSInteger index = 0; index < (NSInteger)options.count; index++) {
+        if ([options[index][@"font"] isEqualToString:fontName]) {
+            return index;
+        }
+    }
+    return 0;
+}
+
+- (NSString *)selectedSignatureFontName {
+    NSInteger index = self.signatureFontPopup.indexOfSelectedItem;
+    NSArray<NSDictionary<NSString *, NSString *> *> *options = [self signatureFontOptions];
+    if (index >= 0 && index < (NSInteger)options.count) {
+        return options[index][@"font"];
+    }
+    return options.firstObject[@"font"];
+}
+
 - (instancetype)initWithConfig:(MirrorConfig *)config {
-    NSWindow *window = [[SettingsWindow alloc] initWithContentRect:NSMakeRect(0, 0, 470, 470)
+    NSWindow *window = [[SettingsWindow alloc] initWithContentRect:NSMakeRect(0, 0, 430, 560)
                                                          styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
                                                            backing:NSBackingStoreBuffered
                                                              defer:NO];
@@ -864,10 +947,12 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.window.releasedWhenClosed = NO;
     self.window.titlebarAppearsTransparent = YES;
     self.window.titleVisibility = NSWindowTitleHidden;
+    self.window.backgroundColor = [NSColor colorWithCalibratedWhite:0.96 alpha:0.98];
+    self.window.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
 }
 
 - (NSFont *)signaturePreviewFontWithSize:(CGFloat)size {
-    return [NSFont fontWithName:@"Snell Roundhand Bold" size:size] ?: ([NSFont fontWithName:@"Didot" size:size] ?: [NSFont systemFontOfSize:size weight:NSFontWeightMedium]);
+    return [self signatureFontForName:self.config.signatureFontName size:size];
 }
 
 - (void)buildUI {
@@ -878,22 +963,26 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
     self.rootVisualEffectView = [[NSVisualEffectView alloc] initWithFrame:contentView.bounds];
     self.rootVisualEffectView.translatesAutoresizingMaskIntoConstraints = NO;
-    self.rootVisualEffectView.material = NSVisualEffectMaterialSidebar;
+    self.rootVisualEffectView.material = NSVisualEffectMaterialMenu;
     self.rootVisualEffectView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
     self.rootVisualEffectView.state = NSVisualEffectStateActive;
+    self.rootVisualEffectView.wantsLayer = YES;
+    self.rootVisualEffectView.layer.backgroundColor = [NSColor colorWithCalibratedWhite:0.98 alpha:0.88].CGColor;
     [contentView addSubview:self.rootVisualEffectView];
 
     NSTextField *eyebrowLabel = [NSTextField labelWithString:@"CAMERA MIRROR"];
-    eyebrowLabel.font = [NSFont systemFontOfSize:11.0 weight:NSFontWeightBold];
+    eyebrowLabel.font = [NSFont systemFontOfSize:10.5 weight:NSFontWeightSemibold];
     eyebrowLabel.textColor = [NSColor colorWithCalibratedRed:0.88 green:0.41 blue:0.47 alpha:1.0];
+    eyebrowLabel.alignment = NSTextAlignmentCenter;
 
     NSTextField *titleLabel = [NSTextField labelWithString:@"Overlay & Mirror Settings"];
-    titleLabel.font = [NSFont systemFontOfSize:24.0 weight:NSFontWeightSemibold];
-    titleLabel.textColor = NSColor.labelColor;
+    titleLabel.font = [NSFont systemFontOfSize:24.0 weight:NSFontWeightMedium];
+    titleLabel.textColor = [NSColor colorWithCalibratedWhite:0.12 alpha:0.96];
+    titleLabel.alignment = NSTextAlignmentCenter;
 
     NSTextField *introLabel = [NSTextField wrappingLabelWithString:@"Double-click the watermark text or hover over the camera to reopen this panel. Changes update instantly."];
     introLabel.font = [NSFont systemFontOfSize:13.0];
-    introLabel.textColor = NSColor.secondaryLabelColor;
+    introLabel.textColor = [NSColor colorWithCalibratedWhite:0.35 alpha:0.92];
     introLabel.alignment = NSTextAlignmentCenter;
     introLabel.maximumNumberOfLines = 0;
     introLabel.translatesAutoresizingMaskIntoConstraints = NO;
@@ -903,6 +992,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.signatureField.placeholderString = @"Signature";
     self.signatureColorWell = [[NSColorWell alloc] initWithFrame:NSZeroRect];
     self.signatureFontSlider = [[NSSlider alloc] initWithFrame:NSZeroRect];
+    self.signatureFontPopup = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
     self.signatureFontSlider.minValue = 16.0;
     self.signatureFontSlider.maxValue = 64.0;
     self.signatureFontValueLabel = [NSTextField labelWithString:@""];
@@ -912,11 +1002,14 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.sizeSlider.maxValue = 420.0;
     self.shapePopup = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
     [self.shapePopup addItemsWithTitles:@[@"Circle", @"Rounded Square", @"Soft Square"]];
+    for (NSDictionary<NSString *, NSString *> *option in [self signatureFontOptions]) {
+        [self.signatureFontPopup addItemWithTitle:option[@"title"]];
+    }
     self.sizeValueLabel = [NSTextField labelWithString:@""];
     self.sizeValueLabel.font = [NSFont monospacedDigitSystemFontOfSize:12.0 weight:NSFontWeightMedium];
-    self.sizeValueLabel.textColor = NSColor.secondaryLabelColor;
+    self.sizeValueLabel.textColor = [NSColor colorWithCalibratedWhite:0.42 alpha:0.95];
     self.signatureFontValueLabel.font = [NSFont monospacedDigitSystemFontOfSize:12.0 weight:NSFontWeightMedium];
-    self.signatureFontValueLabel.textColor = NSColor.secondaryLabelColor;
+    self.signatureFontValueLabel.textColor = [NSColor colorWithCalibratedWhite:0.42 alpha:0.95];
     self.signaturePreviewLabel.alignment = NSTextAlignmentCenter;
     self.signaturePreviewLabel.maximumNumberOfLines = 0;
     self.signaturePreviewLabel.translatesAutoresizingMaskIntoConstraints = NO;
@@ -924,6 +1017,11 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [self.signaturePreviewLabel setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationVertical];
 
     [self configureColorWell:self.signatureColorWell];
+    [self configureSlider:self.signatureFontSlider];
+    [self configureSlider:self.sizeSlider];
+    [self configurePopup:self.shapePopup];
+    [self configurePopup:self.signatureFontPopup];
+    [self configureTextField:self.signatureField];
 
     [self.signatureField setTarget:self];
     [self.signatureField setAction:@selector(handleDraftChange:)];
@@ -931,6 +1029,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [self.signatureColorWell setAction:@selector(handleDraftChange:)];
     [self.signatureFontSlider setTarget:self];
     [self.signatureFontSlider setAction:@selector(handleDraftChange:)];
+    [self.signatureFontPopup setTarget:self];
+    [self.signatureFontPopup setAction:@selector(handleDraftChange:)];
     [self.sizeSlider setTarget:self];
     [self.sizeSlider setAction:@selector(handleDraftChange:)];
     [self.shapePopup setTarget:self];
@@ -939,36 +1039,37 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textDidChange:) name:NSControlTextDidChangeNotification object:self.signatureField];
 
     NSButton *resetButton = [NSButton buttonWithTitle:@"Reset Mirror Position" target:self action:@selector(resetPosition:)];
-    resetButton.bezelStyle = NSBezelStyleRounded;
-    resetButton.contentTintColor = [NSColor colorWithCalibratedRed:0.88 green:0.41 blue:0.47 alpha:1.0];
+    [self styleButton:resetButton primary:NO danger:YES];
 
     NSButton *closeButton = [NSButton buttonWithTitle:@"Hide Panel" target:self action:@selector(hideWindow:)];
-    closeButton.bezelStyle = NSBezelStyleRounded;
+    [self styleButton:closeButton primary:NO danger:NO];
 
     NSButton *applyButton = [NSButton buttonWithTitle:@"Apply Signature" target:self action:@selector(applyChanges:)];
-    applyButton.bezelStyle = NSBezelStyleRounded;
-    applyButton.contentTintColor = [NSColor colorWithCalibratedRed:0.25 green:0.53 blue:0.98 alpha:1.0];
+    [self styleButton:applyButton primary:YES danger:NO];
 
     NSStackView *stack = [[NSStackView alloc] initWithFrame:NSZeroRect];
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
-    stack.spacing = 18.0;
+    stack.alignment = NSLayoutAttributeCenterX;
+    stack.spacing = 14.0;
     stack.translatesAutoresizingMaskIntoConstraints = NO;
-    stack.edgeInsets = NSEdgeInsetsMake(24.0, 24.0, 24.0, 24.0);
+    stack.edgeInsets = NSEdgeInsetsMake(24.0, 22.0, 22.0, 22.0);
 
     [stack addArrangedSubview:eyebrowLabel];
     [stack addArrangedSubview:titleLabel];
     [stack addArrangedSubview:introLabel];
-    [stack addArrangedSubview:[self sectionCardWithTitle:@"Signature" rows:@[
-        [self labeledRowWithTitle:@"Signature" control:self.signatureField],
-        [self textStyleRowWithTitle:@"Signature style" colorWell:self.signatureColorWell slider:self.signatureFontSlider valueLabel:self.signatureFontValueLabel],
-        [self previewCard],
-        [self buttonRowWithViews:@[applyButton]]
-    ]]];
-    [stack addArrangedSubview:[self sectionCardWithTitle:@"Mirror Shape" rows:@[
+    [stack addArrangedSubview:[self sectionCardWithTitle:nil rows:@[
         [self labeledRowWithTitle:@"Frame shape" control:self.shapePopup],
         [self sizeRow]
     ]]];
-    [stack addArrangedSubview:[self buttonRowWithViews:@[resetButton, closeButton]]];
+    [stack addArrangedSubview:[self sectionCardWithTitle:nil rows:@[
+        [self labeledRowWithTitle:@"Signature" control:self.signatureField],
+        [self labeledRowWithTitle:@"Font" control:self.signatureFontPopup],
+        [self colorRow],
+        [self sliderRowWithTitle:@"Font size" slider:self.signatureFontSlider valueLabel:self.signatureFontValueLabel],
+        [self previewCard],
+        [self buttonRowWithViews:@[applyButton]]
+    ]]];
+    [stack addArrangedSubview:[self footerRowWithViews:@[resetButton, closeButton]]];
 
     [self.rootVisualEffectView addSubview:stack];
 
@@ -979,74 +1080,59 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         [self.rootVisualEffectView.bottomAnchor constraintEqualToAnchor:contentView.bottomAnchor],
         [stack.leadingAnchor constraintEqualToAnchor:self.rootVisualEffectView.leadingAnchor],
         [stack.trailingAnchor constraintEqualToAnchor:self.rootVisualEffectView.trailingAnchor],
-        [stack.topAnchor constraintEqualToAnchor:self.rootVisualEffectView.topAnchor constant:12.0],
+        [stack.topAnchor constraintEqualToAnchor:self.rootVisualEffectView.topAnchor constant:10.0],
         [stack.bottomAnchor constraintEqualToAnchor:self.rootVisualEffectView.bottomAnchor]
     ]];
 }
 
 - (NSView *)labeledRowWithTitle:(NSString *)title control:(NSView *)control {
-    NSTextField *titleLabel = [NSTextField labelWithString:title];
-    titleLabel.font = [NSFont systemFontOfSize:13.0 weight:NSFontWeightMedium];
-    [titleLabel setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
-
+    NSTextField *titleLabel = [self rowLabelWithTitle:title];
     control.translatesAutoresizingMaskIntoConstraints = NO;
-    [[control.widthAnchor constraintGreaterThanOrEqualToConstant:180.0] setActive:YES];
+    [control setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
 
     NSStackView *row = [NSStackView stackViewWithViews:@[titleLabel, control]];
     row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
     row.alignment = NSLayoutAttributeCenterY;
-    row.spacing = 12.0;
+    row.spacing = 10.0;
+    [row setClippingResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
     return row;
 }
 
 - (void)configureColorWell:(NSColorWell *)colorWell {
     colorWell.translatesAutoresizingMaskIntoConstraints = NO;
     colorWell.controlSize = NSControlSizeSmall;
-    [[colorWell.widthAnchor constraintEqualToConstant:34.0] setActive:YES];
-    [[colorWell.heightAnchor constraintEqualToConstant:22.0] setActive:YES];
-}
-
-- (NSView *)textStyleRowWithTitle:(NSString *)title colorWell:(NSColorWell *)colorWell slider:(NSSlider *)slider valueLabel:(NSTextField *)valueLabel {
-    NSTextField *titleLabel = [NSTextField labelWithString:title];
-    titleLabel.font = [NSFont systemFontOfSize:13.0 weight:NSFontWeightMedium];
-    [titleLabel setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
-
-    slider.translatesAutoresizingMaskIntoConstraints = NO;
-    [[slider.widthAnchor constraintGreaterThanOrEqualToConstant:150.0] setActive:YES];
-    [valueLabel setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
-
-    NSStackView *controls = [NSStackView stackViewWithViews:@[colorWell, slider, valueLabel]];
-    controls.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    controls.alignment = NSLayoutAttributeCenterY;
-    controls.spacing = 10.0;
-
-    NSStackView *row = [NSStackView stackViewWithViews:@[titleLabel, controls]];
-    row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    row.alignment = NSLayoutAttributeCenterY;
-    row.spacing = 12.0;
-    return row;
+    colorWell.colorWellStyle = NSColorWellStyleMinimal;
+    colorWell.wantsLayer = YES;
+    colorWell.layer.cornerRadius = 12.0;
+    colorWell.layer.masksToBounds = YES;
+    [[colorWell.widthAnchor constraintEqualToConstant:24.0] setActive:YES];
+    [[colorWell.heightAnchor constraintEqualToConstant:24.0] setActive:YES];
 }
 
 - (NSView *)sectionCardWithTitle:(NSString *)title rows:(NSArray<NSView *> *)rows {
     NSVisualEffectView *card = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
-    card.material = NSVisualEffectMaterialHUDWindow;
+    card.translatesAutoresizingMaskIntoConstraints = NO;
+    card.material = NSVisualEffectMaterialPopover;
     card.blendingMode = NSVisualEffectBlendingModeWithinWindow;
     card.state = NSVisualEffectStateActive;
     card.wantsLayer = YES;
-    card.layer.cornerRadius = 18.0;
+    card.layer.cornerRadius = 16.0;
     card.layer.borderWidth = 1.0;
-    card.layer.borderColor = [NSColor colorWithWhite:1.0 alpha:0.08].CGColor;
-
-    NSTextField *titleLabel = [NSTextField labelWithString:title];
-    titleLabel.font = [NSFont systemFontOfSize:12.0 weight:NSFontWeightBold];
-    titleLabel.textColor = [NSColor colorWithCalibratedRed:0.88 green:0.41 blue:0.47 alpha:1.0];
+    card.layer.borderColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.72].CGColor;
+    card.layer.backgroundColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.62].CGColor;
+    [[card.widthAnchor constraintEqualToConstant:386.0] setActive:YES];
 
     NSStackView *stack = [[NSStackView alloc] initWithFrame:NSZeroRect];
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
-    stack.spacing = 12.0;
+    stack.spacing = 13.0;
     stack.translatesAutoresizingMaskIntoConstraints = NO;
-    stack.edgeInsets = NSEdgeInsetsMake(16.0, 16.0, 16.0, 16.0);
-    [stack addArrangedSubview:titleLabel];
+    stack.edgeInsets = NSEdgeInsetsMake(18.0, 18.0, 16.0, 18.0);
+    if (title.length > 0) {
+        NSTextField *titleLabel = [NSTextField labelWithString:title];
+        titleLabel.font = [NSFont systemFontOfSize:10.0 weight:NSFontWeightMedium];
+        titleLabel.textColor = [NSColor colorWithCalibratedRed:0.88 green:0.41 blue:0.47 alpha:0.75];
+        [stack addArrangedSubview:titleLabel];
+    }
     for (NSView *row in rows) {
         [stack addArrangedSubview:row];
     }
@@ -1064,16 +1150,16 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
 - (NSView *)previewCard {
     NSTextField *titleLabel = [NSTextField labelWithString:@"Signature Styling Preview"];
-    titleLabel.font = [NSFont systemFontOfSize:12.0 weight:NSFontWeightBold];
-    titleLabel.textColor = [NSColor colorWithCalibratedRed:0.88 green:0.41 blue:0.47 alpha:1.0];
+    titleLabel.font = [NSFont systemFontOfSize:11.0 weight:NSFontWeightRegular];
+    titleLabel.textColor = [NSColor colorWithCalibratedWhite:0.5 alpha:0.95];
 
     NSView *previewSurface = [[NSView alloc] initWithFrame:NSZeroRect];
     previewSurface.translatesAutoresizingMaskIntoConstraints = NO;
     previewSurface.wantsLayer = YES;
-    previewSurface.layer.cornerRadius = 14.0;
-    previewSurface.layer.backgroundColor = [NSColor colorWithWhite:0.08 alpha:0.6].CGColor;
+    previewSurface.layer.cornerRadius = 10.0;
+    previewSurface.layer.backgroundColor = [NSColor colorWithCalibratedWhite:0.96 alpha:0.95].CGColor;
     previewSurface.layer.borderWidth = 1.0;
-    previewSurface.layer.borderColor = [NSColor colorWithWhite:1.0 alpha:0.12].CGColor;
+    previewSurface.layer.borderColor = [NSColor colorWithCalibratedWhite:0.82 alpha:1.0].CGColor;
 
     [previewSurface addSubview:self.signaturePreviewLabel];
 
@@ -1085,7 +1171,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [stack addArrangedSubview:previewSurface];
 
     [NSLayoutConstraint activateConstraints:@[
-        [previewSurface.heightAnchor constraintEqualToConstant:88.0],
+        [previewSurface.heightAnchor constraintEqualToConstant:82.0],
         [previewSurface.widthAnchor constraintGreaterThanOrEqualToConstant:0.0],
         [self.signaturePreviewLabel.leadingAnchor constraintEqualToAnchor:previewSurface.leadingAnchor constant:16.0],
         [self.signaturePreviewLabel.trailingAnchor constraintEqualToAnchor:previewSurface.trailingAnchor constant:-16.0],
@@ -1098,19 +1184,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 }
 
 - (NSView *)sizeRow {
-    NSTextField *label = [NSTextField labelWithString:@"Circle size"];
-    label.font = [NSFont systemFontOfSize:13.0 weight:NSFontWeightMedium];
-    [label setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
-    [self.sizeValueLabel setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
-
-    NSStackView *controls = [NSStackView stackViewWithViews:@[self.sizeSlider, self.sizeValueLabel]];
-    controls.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    controls.spacing = 12.0;
-
-    NSStackView *row = [NSStackView stackViewWithViews:@[label, controls]];
-    row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    row.spacing = 12.0;
-    return row;
+    return [self sliderRowWithTitle:@"Size" slider:self.sizeSlider valueLabel:self.sizeValueLabel];
 }
 
 - (NSView *)buttonRowWithViews:(NSArray<NSView *> *)views {
@@ -1123,10 +1197,102 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     return row;
 }
 
+- (NSView *)footerRowWithViews:(NSArray<NSView *> *)views {
+    NSStackView *row = [NSStackView stackViewWithViews:views];
+    row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    row.distribution = NSStackViewDistributionFillEqually;
+    row.spacing = 8.0;
+    return row;
+}
+
+- (NSView *)colorRow {
+    NSTextField *hintLabel = [NSTextField labelWithString:@"click to change"];
+    hintLabel.font = [NSFont systemFontOfSize:12.0];
+    hintLabel.textColor = [NSColor colorWithCalibratedWhite:0.58 alpha:0.95];
+
+    NSStackView *controls = [NSStackView stackViewWithViews:@[self.signatureColorWell, hintLabel]];
+    controls.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    controls.alignment = NSLayoutAttributeCenterY;
+    controls.spacing = 10.0;
+    [controls setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
+    return [self labeledRowWithTitle:@"Color" control:controls];
+}
+
+- (NSView *)sliderRowWithTitle:(NSString *)title slider:(NSSlider *)slider valueLabel:(NSTextField *)valueLabel {
+    NSTextField *label = [self rowLabelWithTitle:title];
+    slider.translatesAutoresizingMaskIntoConstraints = NO;
+    [[slider.widthAnchor constraintGreaterThanOrEqualToConstant:138.0] setActive:YES];
+    [valueLabel setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+    NSStackView *controls = [NSStackView stackViewWithViews:@[slider, valueLabel]];
+    controls.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    controls.alignment = NSLayoutAttributeCenterY;
+    controls.spacing = 10.0;
+    [controls setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+    NSStackView *row = [NSStackView stackViewWithViews:@[label, controls]];
+    row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    row.alignment = NSLayoutAttributeCenterY;
+    row.spacing = 10.0;
+    [row setClippingResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
+    return row;
+}
+
+- (NSTextField *)rowLabelWithTitle:(NSString *)title {
+    NSTextField *label = [NSTextField labelWithString:title];
+    label.font = [NSFont systemFontOfSize:13.0 weight:NSFontWeightRegular];
+    label.textColor = [NSColor colorWithCalibratedWhite:0.24 alpha:0.96];
+    label.alignment = NSTextAlignmentRight;
+    label.lineBreakMode = NSLineBreakByClipping;
+    [label setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [[label.widthAnchor constraintEqualToConstant:92.0] setActive:YES];
+    return label;
+}
+
+- (void)configureTextField:(NSTextField *)textField {
+    textField.translatesAutoresizingMaskIntoConstraints = NO;
+    textField.font = [NSFont systemFontOfSize:13.0];
+    textField.bezelStyle = NSTextFieldRoundedBezel;
+    textField.focusRingType = NSFocusRingTypeNone;
+    textField.textColor = [NSColor colorWithCalibratedWhite:0.16 alpha:0.98];
+    textField.backgroundColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.95];
+    textField.bordered = YES;
+    textField.drawsBackground = YES;
+    textField.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
+    [[textField.heightAnchor constraintEqualToConstant:30.0] setActive:YES];
+}
+
+- (void)configureSlider:(NSSlider *)slider {
+    slider.translatesAutoresizingMaskIntoConstraints = NO;
+    slider.controlSize = NSControlSizeSmall;
+}
+
+- (void)configurePopup:(NSPopUpButton *)popup {
+    popup.translatesAutoresizingMaskIntoConstraints = NO;
+    popup.font = [NSFont systemFontOfSize:13.0];
+    popup.contentTintColor = [NSColor colorWithCalibratedWhite:0.16 alpha:0.98];
+    popup.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
+    [[popup.widthAnchor constraintGreaterThanOrEqualToConstant:170.0] setActive:YES];
+}
+
+- (void)styleButton:(NSButton *)button primary:(BOOL)primary danger:(BOOL)danger {
+    button.bezelStyle = NSBezelStyleRounded;
+    button.controlSize = NSControlSizeRegular;
+    button.font = [NSFont systemFontOfSize:13.0 weight:NSFontWeightMedium];
+    if (danger) {
+        button.contentTintColor = [NSColor colorWithCalibratedRed:0.88 green:0.41 blue:0.47 alpha:1.0];
+    } else if (primary) {
+        button.contentTintColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.96];
+    } else {
+        button.contentTintColor = [NSColor colorWithWhite:1.0 alpha:0.74];
+    }
+}
+
 - (void)applyCurrentConfigToControls {
     self.signatureField.stringValue = self.config.signature ?: @"";
     self.signatureColorWell.color = self.config.signatureColor;
     self.signatureFontSlider.doubleValue = self.config.signatureFontSize;
+    [self.signatureFontPopup selectItemAtIndex:[self indexForSignatureFontName:self.config.signatureFontName]];
     self.sizeSlider.doubleValue = self.config.diameter;
     [self.shapePopup selectItemAtIndex:self.config.shape];
     self.signatureFontValueLabel.stringValue = [NSString stringWithFormat:@"%d pt", (int)round(self.config.signatureFontSize)];
@@ -1138,6 +1304,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.config.signature = self.signatureField.stringValue ?: @"";
     self.config.signatureColor = self.signatureColorWell.color;
     self.config.signatureFontSize = round(self.signatureFontSlider.doubleValue);
+    self.config.signatureFontName = [self selectedSignatureFontName];
     self.config.diameter = round(self.sizeSlider.doubleValue);
     self.config.shape = (MirrorShape)self.shapePopup.indexOfSelectedItem;
     self.signatureFontValueLabel.stringValue = [NSString stringWithFormat:@"%d pt", (int)self.config.signatureFontSize];
@@ -1165,6 +1332,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.sourceConfig.signature = self.config.signature;
     self.sourceConfig.signatureColor = self.config.signatureColor;
     self.sourceConfig.signatureFontSize = self.config.signatureFontSize;
+    self.sourceConfig.signatureFontName = self.config.signatureFontName;
     self.sourceConfig.diameter = self.config.diameter;
     self.sourceConfig.shape = self.config.shape;
     self.sourceConfig.mirrorOriginX = self.config.mirrorOriginX;

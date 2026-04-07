@@ -15,6 +15,8 @@ ICONSET_DIR="$BUILD_DIR/AppIcon.iconset"
 ICNS_PATH="$RESOURCES_DIR/AppIcon.icns"
 ICON_EXPORT_PATH="$SCRIPT_DIR/camera-mirror-icon-1024.png"
 RSRC_PATH="$BUILD_DIR/appicon.rsrc"
+TIFF_ICON_DIR="$BUILD_DIR/AppIcon.tiffset"
+TIFF_ICON_PATH="$BUILD_DIR/AppIcon.tiff"
 FINDER_ICON_FILE="$APP_DIR/Icon"$'\r'
 
 mkdir -p "$BUILD_DIR" "$MACOS_DIR" "$RESOURCES_DIR"
@@ -41,6 +43,8 @@ cp "$ICON_PNG" "$ICON_EXPORT_PATH"
 
 rm -rf "$ICONSET_DIR"
 mkdir -p "$ICONSET_DIR"
+rm -rf "$TIFF_ICON_DIR"
+mkdir -p "$TIFF_ICON_DIR"
 
 for size in 16 32 128 256 512; do
   sips -z "$size" "$size" "$ICON_PNG" --out "$ICONSET_DIR/icon_${size}x${size}.png" >/dev/null
@@ -48,13 +52,35 @@ for size in 16 32 128 256 512; do
   sips -z "$retina_size" "$retina_size" "$ICON_PNG" --out "$ICONSET_DIR/icon_${size}x${size}@2x.png" >/dev/null
 done
 
-cp "$ICON_PNG" "$ICONSET_DIR/icon_1024x1024.png"
-
-if iconutil -c icns "$ICONSET_DIR" -o "$ICNS_PATH"; then
+if iconutil -c icns "$ICONSET_DIR" -o "$ICNS_PATH" 2>/dev/null; then
   echo "Generated .icns app icon."
 else
-  echo "iconutil could not build .icns on this machine; keeping exported PNG icon at:"
-  echo "$ICON_EXPORT_PATH"
+  echo "iconutil could not build .icns on this machine; trying tiff2icns fallback..."
+
+  for png_path in "$ICONSET_DIR"/*.png; do
+    file_name="$(basename "$png_path" .png)"
+    sips -s format tiff "$png_path" --out "$TIFF_ICON_DIR/${file_name}.tiff" >/dev/null
+  done
+
+  tiffutil -catnosizecheck \
+    "$TIFF_ICON_DIR/icon_16x16.tiff" \
+    "$TIFF_ICON_DIR/icon_16x16@2x.tiff" \
+    "$TIFF_ICON_DIR/icon_32x32.tiff" \
+    "$TIFF_ICON_DIR/icon_32x32@2x.tiff" \
+    "$TIFF_ICON_DIR/icon_128x128.tiff" \
+    "$TIFF_ICON_DIR/icon_128x128@2x.tiff" \
+    "$TIFF_ICON_DIR/icon_256x256.tiff" \
+    "$TIFF_ICON_DIR/icon_256x256@2x.tiff" \
+    "$TIFF_ICON_DIR/icon_512x512.tiff" \
+    "$TIFF_ICON_DIR/icon_512x512@2x.tiff" \
+    -out "$TIFF_ICON_PATH" >/dev/null
+
+  if tiff2icns "$TIFF_ICON_PATH" "$ICNS_PATH"; then
+    echo "Generated .icns app icon via tiff2icns fallback."
+  else
+    echo "Could not build .icns on this machine; keeping exported PNG icon at:"
+    echo "$ICON_EXPORT_PATH"
+  fi
 fi
 
 cp "$BIN_PATH" "$MACOS_DIR/camera-mirror"
