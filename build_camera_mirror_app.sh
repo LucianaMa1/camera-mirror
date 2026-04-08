@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/.build"
-APP_NAME="Camera Mirror"
+APP_NAME="Luci's Camera Mirror"
 APP_DIR="$SCRIPT_DIR/$APP_NAME.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
@@ -21,7 +21,7 @@ FINDER_ICON_FILE="$APP_DIR/Icon"$'\r'
 
 mkdir -p "$BUILD_DIR" "$MACOS_DIR" "$RESOURCES_DIR"
 
-echo "Compiling Camera Mirror binary..."
+echo "Compiling Luci's Camera Mirror binary..."
 clang \
   -fobjc-arc \
   -framework AppKit \
@@ -94,7 +94,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleDisplayName</key>
-  <string>Camera Mirror</string>
+  <string>Luci's Camera Mirror</string>
   <key>CFBundleExecutable</key>
   <string>camera-mirror</string>
   <key>CFBundleIconFile</key>
@@ -104,7 +104,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>Camera Mirror</string>
+  <string>Luci's Camera Mirror</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -114,7 +114,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <key>LSMinimumSystemVersion</key>
   <string>12.0</string>
   <key>NSCameraUsageDescription</key>
-  <string>Camera Mirror uses the camera to show your face while you record your screen.</string>
+  <string>Luci's Camera Mirror uses the camera to show your face while you record your screen.</string>
   <key>NSHighResolutionCapable</key>
   <true/>
 </dict>

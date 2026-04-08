@@ -6,7 +6,7 @@ If you record tutorials, demos, or walkthroughs and want your face visible while
 
 No subscription. No login. Just open and record.
 
-`Camera Mirror` gives you a small always-on-top camera mirror window, so while you record your screen with any screen recorder, you can still see yourself live.
+`Luci's Camera Mirror` gives you a small always-on-top camera mirror window, so while you record your screen with any screen recorder, you can still see yourself live.
 
 It works great with:
 
@@ -35,10 +35,10 @@ gh repo clone LucianaMa1/camera-mirror
 cd camera-mirror
 chmod +x ./build_camera_mirror_app.sh
 ./build_camera_mirror_app.sh
-open "Camera Mirror.app"
+open "Luci's Camera Mirror.app"
 ```
 
-This will generate: `Camera Mirror.app` and open the app for you.
+This will generate: `Luci's Camera Mirror.app` and open the app for you.
 
 After you have built it for the first time, you can access this app from the applicartion menu on your computer next time.
 
@@ -48,11 +48,11 @@ If the permission prompt does not appear automatically, go to:
 
 `System Settings` -> `Privacy & Security` -> `Camera`
 
-and allow Camera Mirror to access the camera.
+and allow Luci's Camera Mirror to access the camera.
 
 ## Typical Workflow
 
-1. Open `Camera Mirror`
+1. Open `Luci's Camera Mirror`
 2. Move the mirror where you want it
 3. Resize it so it does not block your content
 4. Add your name or watermark text if you want

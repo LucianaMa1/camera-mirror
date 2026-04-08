@@ -9,7 +9,7 @@ SOURCE_FILE="$SCRIPT_DIR/main.m"
 mkdir -p "$BUILD_DIR"
 
 if [[ ! -f "$APP_BIN" || "$SOURCE_FILE" -nt "$APP_BIN" ]]; then
-  echo "Compiling Camera Mirror..."
+  echo "Compiling Luci's Camera Mirror..."
   clang \
     -fobjc-arc \
     -framework AppKit \

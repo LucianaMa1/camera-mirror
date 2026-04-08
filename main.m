@@ -11,6 +11,7 @@ static NSString * const kMirrorOriginXKey = @"mirror.windowOriginX";
 static NSString * const kMirrorOriginYKey = @"mirror.windowOriginY";
 static NSString * const kOverlayOriginXKey = @"mirror.overlayOriginX";
 static NSString * const kOverlayOriginYKey = @"mirror.overlayOriginY";
+static NSString * const kOverlayHasCustomPositionKey = @"mirror.overlayHasCustomPosition";
 
 typedef NS_ENUM(NSInteger, MirrorShape) {
     MirrorShapeCircle = 0,
@@ -29,6 +30,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @property (nonatomic, assign) CGFloat mirrorOriginY;
 @property (nonatomic, assign) CGFloat overlayOriginX;
 @property (nonatomic, assign) CGFloat overlayOriginY;
+@property (nonatomic, assign) BOOL overlayHasCustomPosition;
 + (instancetype)defaults;
 @end
 
@@ -45,6 +47,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     config.mirrorOriginY = CGFLOAT_MAX;
     config.overlayOriginX = CGFLOAT_MAX;
     config.overlayOriginY = CGFLOAT_MAX;
+    config.overlayHasCustomPosition = NO;
     return config;
 }
 
@@ -60,6 +63,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     copy.mirrorOriginY = self.mirrorOriginY;
     copy.overlayOriginX = self.overlayOriginX;
     copy.overlayOriginY = self.overlayOriginY;
+    copy.overlayHasCustomPosition = self.overlayHasCustomPosition;
     return copy;
 }
 @end
@@ -123,6 +127,10 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         config.overlayOriginY = [defaults doubleForKey:kOverlayOriginYKey];
     }
 
+    if ([defaults objectForKey:kOverlayHasCustomPositionKey] != nil) {
+        config.overlayHasCustomPosition = [defaults boolForKey:kOverlayHasCustomPositionKey];
+    }
+
     return config;
 }
 
@@ -137,6 +145,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [defaults setDouble:config.mirrorOriginY forKey:kMirrorOriginYKey];
     [defaults setDouble:config.overlayOriginX forKey:kOverlayOriginXKey];
     [defaults setDouble:config.overlayOriginY forKey:kOverlayOriginYKey];
+    [defaults setBool:config.overlayHasCustomPosition forKey:kOverlayHasCustomPositionKey];
 
     NSData *signatureColorData = [NSKeyedArchiver archivedDataWithRootObject:config.signatureColor requiringSecureCoding:YES error:nil];
     if (signatureColorData != nil) {
@@ -244,7 +253,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.quitButton.layer.cornerRadius = 14.0;
     self.quitButton.alphaValue = 0.0;
     self.quitButton.hidden = YES;
-    self.quitButton.toolTip = @"Quit Camera Mirror";
+    self.quitButton.toolTip = @"Quit Luci's Camera Mirror";
     [self addSubview:self.quitButton];
 }
 
@@ -820,6 +829,77 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 - (void)syncFromConfig:(MirrorConfig *)config;
 @end
 
+@interface HelpIconButton : NSButton
+@property (nonatomic, copy) NSString *helpText;
+@end
+
+@interface HelpIconButton ()
+@property (nonatomic, strong) NSTrackingArea *hoverTrackingArea;
+@property (nonatomic, strong) NSPopover *helpPopover;
+@end
+
+@implementation HelpIconButton
+
+- (void)updateTrackingAreas {
+    [super updateTrackingAreas];
+
+    if (self.hoverTrackingArea != nil) {
+        [self removeTrackingArea:self.hoverTrackingArea];
+    }
+
+    self.hoverTrackingArea = [[NSTrackingArea alloc] initWithRect:self.bounds
+                                                          options:NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways | NSTrackingInVisibleRect
+                                                            owner:self
+                                                         userInfo:nil];
+    [self addTrackingArea:self.hoverTrackingArea];
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+    if (self.helpText.length == 0 || self.window == nil) {
+        return;
+    }
+
+    if (self.helpPopover == nil) {
+        self.helpPopover = [[NSPopover alloc] init];
+        self.helpPopover.behavior = NSPopoverBehaviorSemitransient;
+        self.helpPopover.animates = YES;
+    }
+
+    NSTextField *label = [NSTextField wrappingLabelWithString:self.helpText];
+    label.font = [NSFont systemFontOfSize:12.0];
+    label.textColor = [NSColor colorWithCalibratedWhite:0.18 alpha:0.98];
+    label.maximumNumberOfLines = 0;
+    label.preferredMaxLayoutWidth = 220.0;
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+
+    NSViewController *contentController = [[NSViewController alloc] init];
+    NSView *contentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 240, 56)];
+    contentView.wantsLayer = YES;
+    contentView.layer.backgroundColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.98].CGColor;
+    contentView.layer.cornerRadius = 10.0;
+    contentController.view = contentView;
+    [contentView addSubview:label];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [label.leadingAnchor constraintEqualToAnchor:contentView.leadingAnchor constant:12.0],
+        [label.trailingAnchor constraintEqualToAnchor:contentView.trailingAnchor constant:-12.0],
+        [label.topAnchor constraintEqualToAnchor:contentView.topAnchor constant:10.0],
+        [label.bottomAnchor constraintEqualToAnchor:contentView.bottomAnchor constant:-10.0]
+    ]];
+
+    self.helpPopover.contentViewController = contentController;
+
+    if (!self.helpPopover.isShown) {
+        [self.helpPopover showRelativeToRect:self.bounds ofView:self preferredEdge:NSRectEdgeMinY];
+    }
+}
+
+- (void)mouseExited:(NSEvent *)event {
+    [self.helpPopover close];
+}
+
+@end
+
 @interface SettingsWindowController ()
 @property (nonatomic, strong) MirrorConfig *sourceConfig;
 @property (nonatomic, strong) MirrorConfig *config;
@@ -942,7 +1022,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 }
 
 - (void)setupWindow {
-    self.window.title = @"Mirror Settings";
+    self.window.title = @"Luci's Camera Mirror";
     [self.window center];
     self.window.releasedWhenClosed = NO;
     self.window.titlebarAppearsTransparent = YES;
@@ -970,23 +1050,15 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.rootVisualEffectView.layer.backgroundColor = [NSColor colorWithCalibratedWhite:0.98 alpha:0.88].CGColor;
     [contentView addSubview:self.rootVisualEffectView];
 
-    NSTextField *eyebrowLabel = [NSTextField labelWithString:@"CAMERA MIRROR"];
+    NSTextField *eyebrowLabel = [NSTextField labelWithString:@"Luci's Camera Mirror"];
     eyebrowLabel.font = [NSFont systemFontOfSize:10.5 weight:NSFontWeightSemibold];
     eyebrowLabel.textColor = [NSColor colorWithCalibratedRed:0.88 green:0.41 blue:0.47 alpha:1.0];
     eyebrowLabel.alignment = NSTextAlignmentCenter;
 
-    NSTextField *titleLabel = [NSTextField labelWithString:@"Overlay & Mirror Settings"];
+    NSTextField *titleLabel = [NSTextField labelWithString:@"Overlay and Settings"];
     titleLabel.font = [NSFont systemFontOfSize:24.0 weight:NSFontWeightMedium];
     titleLabel.textColor = [NSColor colorWithCalibratedWhite:0.12 alpha:0.96];
     titleLabel.alignment = NSTextAlignmentCenter;
-
-    NSTextField *introLabel = [NSTextField wrappingLabelWithString:@"Double-click the watermark text or hover over the camera to reopen this panel. Changes update instantly."];
-    introLabel.font = [NSFont systemFontOfSize:13.0];
-    introLabel.textColor = [NSColor colorWithCalibratedWhite:0.35 alpha:0.92];
-    introLabel.alignment = NSTextAlignmentCenter;
-    introLabel.maximumNumberOfLines = 0;
-    introLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    [[introLabel.widthAnchor constraintLessThanOrEqualToConstant:360.0] setActive:YES];
 
     self.signatureField = [[NSTextField alloc] initWithFrame:NSZeroRect];
     self.signatureField.placeholderString = @"Signature";
@@ -1043,6 +1115,37 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
     NSButton *closeButton = [NSButton buttonWithTitle:@"Hide Panel" target:self action:@selector(hideWindow:)];
     [self styleButton:closeButton primary:NO danger:NO];
+    closeButton.translatesAutoresizingMaskIntoConstraints = NO;
+
+    HelpIconButton *panelHelpButton = [[HelpIconButton alloc] initWithFrame:NSZeroRect];
+    [panelHelpButton setButtonType:NSButtonTypeMomentaryChange];
+    panelHelpButton.title = @"?";
+    panelHelpButton.bezelStyle = NSBezelStyleCircular;
+    panelHelpButton.controlSize = NSControlSizeSmall;
+    panelHelpButton.font = [NSFont systemFontOfSize:10.5 weight:NSFontWeightBold];
+    panelHelpButton.contentTintColor = [NSColor colorWithCalibratedRed:0.88 green:0.41 blue:0.47 alpha:0.95];
+    panelHelpButton.helpText = @"Double-click the watermark text or hover over the camera to reopen this panel.";
+    panelHelpButton.translatesAutoresizingMaskIntoConstraints = NO;
+    panelHelpButton.bordered = NO;
+    panelHelpButton.wantsLayer = YES;
+    panelHelpButton.layer.backgroundColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.96].CGColor;
+    panelHelpButton.layer.cornerRadius = 7.5;
+    [[panelHelpButton.widthAnchor constraintEqualToConstant:18.0] setActive:YES];
+    [[panelHelpButton.heightAnchor constraintEqualToConstant:18.0] setActive:YES];
+
+    NSView *closeGroup = [[NSView alloc] initWithFrame:NSZeroRect];
+    closeGroup.translatesAutoresizingMaskIntoConstraints = NO;
+    [closeGroup addSubview:closeButton];
+    [closeGroup addSubview:panelHelpButton];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [closeButton.leadingAnchor constraintEqualToAnchor:closeGroup.leadingAnchor],
+        [closeButton.trailingAnchor constraintEqualToAnchor:closeGroup.trailingAnchor],
+        [closeButton.topAnchor constraintEqualToAnchor:closeGroup.topAnchor],
+        [closeButton.bottomAnchor constraintEqualToAnchor:closeGroup.bottomAnchor],
+        [panelHelpButton.trailingAnchor constraintEqualToAnchor:closeButton.trailingAnchor constant:-11.0],
+        [panelHelpButton.centerYAnchor constraintEqualToAnchor:closeButton.centerYAnchor]
+    ]];
 
     NSButton *applyButton = [NSButton buttonWithTitle:@"Apply Signature" target:self action:@selector(applyChanges:)];
     [self styleButton:applyButton primary:YES danger:NO];
@@ -1056,7 +1159,6 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
     [stack addArrangedSubview:eyebrowLabel];
     [stack addArrangedSubview:titleLabel];
-    [stack addArrangedSubview:introLabel];
     [stack addArrangedSubview:[self sectionCardWithTitle:nil rows:@[
         [self labeledRowWithTitle:@"Frame shape" control:self.shapePopup],
         [self sizeRow]
@@ -1069,7 +1171,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         [self previewCard],
         [self buttonRowWithViews:@[applyButton]]
     ]]];
-    [stack addArrangedSubview:[self footerRowWithViews:@[resetButton, closeButton]]];
+    [stack addArrangedSubview:[self footerRowWithViews:@[resetButton, closeGroup]]];
 
     [self.rootVisualEffectView addSubview:stack];
 
@@ -1354,6 +1456,9 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     }
 }
 
+- (void)showPanelHelp:(id)sender {
+}
+
 - (void)hideWindow:(id)sender {
     [self.window orderOut:nil];
 }
@@ -1369,6 +1474,24 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 @end
 
 @implementation AppDelegate
+
+- (BOOL)hasStoredCustomOverlayOrigin {
+    return self.config.overlayHasCustomPosition &&
+        self.config.overlayOriginX != CGFLOAT_MAX &&
+        self.config.overlayOriginY != CGFLOAT_MAX;
+}
+
+- (void)positionOverlayUsingCurrentPreference {
+    if ([self hasStoredCustomOverlayOrigin]) {
+        [self.textOverlayPanel setFrameOrigin:NSMakePoint(self.config.overlayOriginX, self.config.overlayOriginY)];
+    } else {
+        [self.textOverlayPanel moveNearMirrorFrame:self.mirrorPanel.frame];
+    }
+
+    [self.textOverlayPanel clampToVisibleFrameForScreen:self.mirrorPanel.screen];
+    self.config.overlayOriginX = self.textOverlayPanel.frame.origin.x;
+    self.config.overlayOriginY = self.textOverlayPanel.frame.origin.y;
+}
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
     self.config = [SettingsStore loadConfig];
@@ -1404,7 +1527,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [appMenu addItem:settingsItem];
     [appMenu addItem:[NSMenuItem separatorItem]];
 
-    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit Camera Mirror" action:@selector(terminate:) keyEquivalent:@"q"];
+    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit Luci's Camera Mirror" action:@selector(terminate:) keyEquivalent:@"q"];
     [appMenu addItem:quitItem];
     appMenuItem.submenu = appMenu;
 
@@ -1426,7 +1549,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
     [menu addItem:[NSMenuItem separatorItem]];
 
-    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit Camera Mirror" action:@selector(terminate:) keyEquivalent:@""];
+    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit Luci's Camera Mirror" action:@selector(terminate:) keyEquivalent:@""];
     [menu addItem:quitItem];
 
     self.statusItem.menu = menu;
@@ -1456,15 +1579,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
 - (void)createTextOverlayPanel {
     self.textOverlayPanel = [[TextOverlayPanel alloc] initWithConfig:self.config];
-
-    if (self.config.overlayOriginX != CGFLOAT_MAX && self.config.overlayOriginY != CGFLOAT_MAX) {
-        [self.textOverlayPanel setFrameOrigin:NSMakePoint(self.config.overlayOriginX, self.config.overlayOriginY)];
-    } else {
-        [self.textOverlayPanel moveNearMirrorFrame:self.mirrorPanel.frame];
-        self.config.overlayOriginX = self.textOverlayPanel.frame.origin.x;
-        self.config.overlayOriginY = self.textOverlayPanel.frame.origin.y;
-        [SettingsStore saveConfig:self.config];
-    }
+    [self positionOverlayUsingCurrentPreference];
+    [SettingsStore saveConfig:self.config];
 }
 
 - (void)createSettingsWindow {
@@ -1481,12 +1597,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
         [weakSelf.mirrorPanel.contentView setNeedsDisplay:YES];
         [weakSelf.mirrorPanel.mirrorView applyConfig:updatedConfig];
         [weakSelf.textOverlayPanel applyConfig:updatedConfig];
-        if (updatedConfig.overlayOriginX != CGFLOAT_MAX && updatedConfig.overlayOriginY != CGFLOAT_MAX) {
-            [weakSelf.textOverlayPanel setFrameOrigin:NSMakePoint(updatedConfig.overlayOriginX, updatedConfig.overlayOriginY)];
-        } else {
-            [weakSelf.textOverlayPanel moveNearMirrorFrame:weakSelf.mirrorPanel.frame];
-        }
-        [weakSelf.textOverlayPanel clampToVisibleFrameForScreen:weakSelf.mirrorPanel.screen];
+        [weakSelf positionOverlayUsingCurrentPreference];
         updatedConfig.overlayOriginX = weakSelf.textOverlayPanel.frame.origin.x;
         updatedConfig.overlayOriginY = weakSelf.textOverlayPanel.frame.origin.y;
         [SettingsStore saveConfig:updatedConfig];
@@ -1513,17 +1624,22 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     self.mirrorPanel.mirrorView.onDragMove = ^(NSPoint origin) {
         weakSelf.config.mirrorOriginX = origin.x;
         weakSelf.config.mirrorOriginY = origin.y;
+        if (!weakSelf.config.overlayHasCustomPosition) {
+            [weakSelf positionOverlayUsingCurrentPreference];
+        }
         [SettingsStore saveConfig:weakSelf.config];
     };
 
     self.textOverlayPanel.overlayView.onDragMove = ^(NSPoint origin) {
         weakSelf.config.overlayOriginX = origin.x;
         weakSelf.config.overlayOriginY = origin.y;
+        weakSelf.config.overlayHasCustomPosition = YES;
     };
 
     self.textOverlayPanel.overlayView.onDragEnd = ^(NSPoint origin) {
         weakSelf.config.overlayOriginX = origin.x;
         weakSelf.config.overlayOriginY = origin.y;
+        weakSelf.config.overlayHasCustomPosition = YES;
         [SettingsStore saveConfig:weakSelf.config];
     };
 
@@ -1547,6 +1663,9 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
     [self.mirrorPanel moveToBottomRightWithSize:self.config.diameter];
     self.config.mirrorOriginX = self.mirrorPanel.frame.origin.x;
     self.config.mirrorOriginY = self.mirrorPanel.frame.origin.y;
+    if (!self.config.overlayHasCustomPosition) {
+        [self positionOverlayUsingCurrentPreference];
+    }
     [SettingsStore saveConfig:self.config];
     [self.mirrorPanel orderFrontRegardless];
 }
