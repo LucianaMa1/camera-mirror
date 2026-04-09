@@ -13,6 +13,19 @@ static NSString * const kOverlayOriginXKey = @"mirror.overlayOriginX";
 static NSString * const kOverlayOriginYKey = @"mirror.overlayOriginY";
 static NSString * const kOverlayHasCustomPositionKey = @"mirror.overlayHasCustomPosition";
 
+static NSString *NormalizedSignatureText(NSString *signature) {
+    if (signature.length == 0) {
+        return @"";
+    }
+
+    NSString *normalized = [signature copy];
+    NSArray<NSString *> *lineBreakTokens = @[ @"<br>", @"<BR>", @"<br/>", @"<BR/>", @"<br />", @"<BR />" ];
+    for (NSString *token in lineBreakTokens) {
+        normalized = [normalized stringByReplacingOccurrencesOfString:token withString:@"\n"];
+    }
+    return normalized;
+}
+
 typedef NS_ENUM(NSInteger, MirrorShape) {
     MirrorShapeCircle = 0,
     MirrorShapeRoundedSquare = 1,
@@ -571,7 +584,7 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 
 - (void)applyConfig:(MirrorConfig *)config {
     self.currentConfig = config;
-    self.signatureLabel.stringValue = config.signature ?: @"";
+    self.signatureLabel.stringValue = NormalizedSignatureText(config.signature);
     self.signatureLabel.textColor = config.signatureColor;
     self.signatureLabel.font = [self signatureFontWithSize:config.signatureFontSize];
 
@@ -1425,7 +1438,8 @@ typedef NS_ENUM(NSInteger, MirrorShape) {
 }
 
 - (void)updatePreview {
-    self.signaturePreviewLabel.stringValue = self.config.signature.length > 0 ? self.config.signature : @"Preview your signature";
+    NSString *previewText = NormalizedSignatureText(self.config.signature);
+    self.signaturePreviewLabel.stringValue = previewText.length > 0 ? previewText : @"Preview your signature";
     self.signaturePreviewLabel.textColor = self.config.signatureColor;
     self.signaturePreviewLabel.font = [self signaturePreviewFontWithSize:self.config.signatureFontSize];
 }
